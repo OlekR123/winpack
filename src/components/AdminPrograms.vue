@@ -52,7 +52,31 @@
           <input v-model="formData.homepageurl" type="url" placeholder="https://example.com" class="form-input" />
 
           <label class="form-label">URL иконки</label>
-          <input v-model="formData.iconurl" type="url" placeholder="https://..." class="form-input" />
+          <div class="icon-url-group">
+            <input
+                v-model="formData.iconurl"
+                type="url"
+                placeholder="https://res.cloudinary.com/..."
+                class="form-input icon-input"
+            />
+            <a
+                href="https://cloudinary.com/"
+                target="_blank"
+                class="btn-cloudinary"
+                title="Загрузить изображение на Cloudinary"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              Загрузить
+            </a>
+          </div>
+          <p class="form-hint">
+            Загрузите изображение на <a href="https://cloudinary.com/" target="_blank" class="link-cloudinary">Cloudinary</a>,
+            затем скопируйте URL и вставьте выше
+          </p>
 
           <label class="form-label">URL скачивания</label>
           <input v-model="formData.downloadurl" type="url" placeholder="https://..." class="form-input" />
@@ -454,6 +478,65 @@ async function deleteProgram(id) {
   outline: none;
   border-color: #facc15;
   box-shadow: 0 0 0 0.1563vw rgba(250, 204, 21, 0.25);
+}
+
+.icon-url-group {
+  display: flex;
+  gap: 0.5208vw;
+  align-items: stretch;
+  margin-bottom: 0.5208vw;
+}
+
+.icon-input {
+  flex: 1;
+  margin-bottom: 0 !important;
+}
+
+.btn-cloudinary {
+  display: flex;
+  align-items: center;
+  gap: 0.3125vw;
+  padding: 0.6510vw 0.9375vw;
+  background: #1f2937;
+  color: #fff;
+  border: none;
+  border-radius: 0.4167vw;
+  font-size: 0.9375vw;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s ease, transform 0.15s ease;
+  line-height: 1.2;
+}
+
+.btn-cloudinary:hover {
+  transform: translateY(-0.0625vw);
+}
+
+.btn-cloudinary svg {
+  width: 1.0417vw;
+  height: 1.0417vw;
+  flex-shrink: 0;
+}
+
+.form-hint {
+  margin: 0 0 1.0417vw 0;
+  font-size: 0.8333vw;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.link-cloudinary {
+  color: #3448C5;
+  text-decoration: underline;
+  transition: color 0.15s;
+}
+
+.link-cloudinary:hover {
+  transform: translateY(-0.1042vw);
+  box-shadow: 0 0.2083vw 0.4167vw rgba(0, 0, 0, 0.1);
 }
 
 .form-btn-submit {
