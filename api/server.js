@@ -3,6 +3,8 @@ import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 import homeRoutes from './routers/home.js';
 import authRoutes from './routers/auth.js';
@@ -13,6 +15,9 @@ dotenv.config({ path: './api/.env' });
 
 const app = express();
 const PORT = Number(process.env.PORT ?? 3000);
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 app.use(helmet({ contentSecurityPolicy: false }));
 
@@ -42,7 +47,14 @@ app.use('/api/winget', wingetRouter);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
-app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
+// Отдаём собранный фронтенд
+const distPath = path.join(__dirname, '..', 'dist');
+app.use(express.static(distPath));
+
+// Все остальные маршруты — на index.html (для Vue Router)
+app.get('*', (_req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+});
 
 app.use((err, _req, res, _next) => {
     console.error('Server error:', err.message);
