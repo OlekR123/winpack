@@ -7,15 +7,14 @@ import dotenv from 'dotenv';
 import homeRoutes from './routers/home.js';
 import authRoutes from './routers/auth.js';
 import adminRouter from './routers/admin.js';
+import wingetRouter from './routers/winget.js';
 
 dotenv.config({ path: './api/.env' });
 
 const app = express();
 const PORT = Number(process.env.PORT ?? 3000);
 
-app.use(helmet({
-    contentSecurityPolicy: false
-}));
+app.use(helmet({ contentSecurityPolicy: false }));
 
 const allowedOrigins = [
     'http://localhost:5173',
@@ -39,12 +38,15 @@ app.use(express.json({ limit: '10mb' }));
 app.use('/api/home', homeRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRouter);
+app.use('/api/winget', wingetRouter);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
 app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
 
 app.use((err, _req, res, _next) => {
+    console.error('Server error:', err.message);
+
     if (process.env.NODE_ENV === 'production') {
         res.status(500).json({ error: 'Internal server error' });
     } else {

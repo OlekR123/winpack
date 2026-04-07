@@ -35,4 +35,3 @@ export async function sendVerificationCode(email, code) {
         throw new Error(`Не удалось отправить письмо: ${error.message}`);
     }
 }
-

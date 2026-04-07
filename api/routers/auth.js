@@ -1,5 +1,5 @@
-import { Router } from 'express';
-import pool from '../db.js';
+import Router from 'express';
+import { query } from '../db.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { sendVerificationCode } from '../utils/mailer.js';
@@ -14,21 +14,17 @@ function isValidEmail(email) {
 }
 
 function isValidPassword(password) {
-    return password.length >= 8 && /[a-z]/.test(password) && /[A-Z]/.test(password) && /[0-9]/.test(password);
+    return password?.length >= 8 && /[a-z]/.test(password) && /[A-Z]/.test(password) && /[0-9]/.test(password);
 }
 
 function signToken(payload) {
     return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
 }
 
-function generateCode() {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
 const sendCodeLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 3,
-    message: { error: 'Слишком много попыток. Попробуйте позже.' },
+    message: { error: 'Слишком много попыток' },
     standardHeaders: true,
     legacyHeaders: false
 });
@@ -36,68 +32,57 @@ const sendCodeLimiter = rateLimit({
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 5,
-    message: { error: 'Слишком много попыток входа. Попробуйте позже.' },
+    message: { error: 'Слишком много попыток входа' },
     standardHeaders: true,
     legacyHeaders: false
 });
 
-router.post('/send-code', sendCodeLimiter, async (req, res, next) => {
+router.post('/send-code', sendCodeLimiter, async (req, res) => {
     try {
-        const { email, password, password2 } = req.body || {};
+        const { email, password, password2 } = req.body;
+        if (!email) return res.status(400).json({ error: 'Email обязателен' });
+        if (!isValidEmail(email)) return res.status(400).json({ error: 'Неверный формат email' });
+        if (!password || !password2) return res.status(400).json({ error: 'Пароли обязательны' });
+        if (password !== password2) return res.status(400).json({ error: 'Пароли не совпадают' });
+        if (!isValidPassword(password)) return res.status(400).json({ error: 'Пароль: 8+ символов, a-z, A-Z, 0-9' });
 
-        if (!email) {
-            return res.status(400).json({ error: 'Укажите адрес электронной почты' });
+        const { rows } = await query('SELECT * FROM user_by_email($1)', [email]);
+
+        if (rows.length > 0) {
+            return res.status(409).json({ error: 'Email уже зарегистрирован' });
         }
 
-        if (!isValidEmail(email)) {
-            return res.status(400).json({ error: 'Введите корректный email адрес' });
-        }
-
-        if (!password || !password2) {
-            return res.status(400).json({ error: 'Укажите пароль и подтверждение' });
-        }
-
-        if (password !== password2) {
-            return res.status(400).json({ error: 'Пароли не совпадают' });
-        }
-
-        if (!isValidPassword(password)) {
-            return res.status(400).json({
-                error: 'Пароль должен содержать минимум 8 символов, включая заглавные, строчные буквы и цифры'
-            });
-        }
-
-        const { rows: existing } = await pool.query('select * from user_by_email($1)', [email]);
-        if (existing.length > 0) {
-            return res.status(400).json({ error: 'Этот email уже зарегистрирован' });
-        }
-
-        const code = generateCode();
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
         saveCode(email, code);
         await sendVerificationCode(email, code);
 
-        res.json({ ok: true, message: 'Код отправлен на почту' });
+        res.json({ ok: true, message: 'Код отправлен' });
     } catch (e) {
-        next(e);
+        console.error('/send-code error:', e.message);
+        res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
-router.post('/register', async (req, res, next) => {
+router.post('/register', async (req, res) => {
     try {
-        const { email, password, password2, code } = req.body || {};
-
-        if (!email || !password || !password2 || !code) {
-            return res.status(400).json({ error: 'Заполните все поля' });
-        }
-
-        if (!verifyCode(email, code)) {
-            return res.status(400).json({ error: 'Неверный или истекший код подтверждения' });
-        }
+        const { email, password, password2, code } = req.body;
+        if (!email || !password || !password2 || !code) return res.status(400).json({ error: 'Все поля обязательны' });
+        if (!verifyCode(email, code)) return res.status(400).json({ error: 'Неверный код' });
 
         const hash = await bcrypt.hash(password, 12);
-        const { rows } = await pool.query('select * from users_register($1, $2)', [email, hash]);
+
+        const { rows } = await query(
+            'SELECT * FROM users_register($1, $2)',
+            [email, hash]
+        );
+
         const user = rows[0];
-        const token = signToken({ id: user.id, email: user.email, role: user.role_name });
+
+        const token = signToken({
+            id: user.id,
+            email: user.email,
+            role: user.role_name
+        });
 
         res.json({
             user: {
@@ -108,36 +93,40 @@ router.post('/register', async (req, res, next) => {
             token
         });
     } catch (e) {
-        next(e);
+        console.error('/register error:', e.message);
+        if (e.message === 'email_exists' || e.code === '23505') {
+            return res.status(409).json({ error: 'Email уже используется' });
+        }
+        res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
-router.post('/login', loginLimiter, async (req, res, next) => {
+router.post('/login', loginLimiter, async (req, res) => {
     try {
-        const { email, password } = req.body || {};
-
-        if (!email || !password) {
-            return res.status(400).json({ error: 'Заполните все поля' });
+        const { email, password } = req.body;
+        if (!email || !password || !isValidEmail(email)) {
+            return res.status(400).json({ error: 'Неверные данные' });
         }
 
-        if (!isValidEmail(email)) {
-            return res.status(400).json({ error: 'Введите корректный email адрес' });
-        }
+        const { rows } = await query('SELECT * FROM user_by_email($1)', [email]);
 
-        const { rows } = await pool.query('select * from user_by_email($1)', [email]);
-
-        if (rows.length === 0) {
+        if (!rows[0]?.password_hash) {
             return res.status(400).json({ error: 'Неверный email или пароль' });
         }
 
         const user = rows[0];
-        const ok = await bcrypt.compare(password, user.password_hash);
+        const isValid = await bcrypt.compare(password, user.password_hash);
 
-        if (!ok) {
+        if (!isValid) {
             return res.status(400).json({ error: 'Неверный email или пароль' });
         }
 
-        const token = signToken({ id: user.id, email: user.email, role: user.role_name });
+        const token = signToken({
+            id: user.id,
+            email: user.email,
+            role: user.role_name
+        });
+
         res.json({
             user: {
                 id: user.id,
@@ -146,27 +135,26 @@ router.post('/login', loginLimiter, async (req, res, next) => {
             },
             token
         });
-    } catch (e) {
-        next(e);
+    } catch (error) {
+        console.error('Login error:', error.message);
+        res.status(500).json({ error: 'Серверная ошибка' });
     }
 });
 
-router.get('/profile', async (req, res, next) => {
+router.get('/profile', async (req, res) => {
     try {
         const token = req.headers.authorization?.split(' ')[1];
-
-        if (!token) {
-            return res.status(401).json({ error: 'Требуется авторизация' });
-        }
+        if (!token) return res.status(401).json({ error: 'Токен отсутствует' });
 
         const payload = jwt.verify(token, process.env.JWT_SECRET);
-        const { rows } = await pool.query('select * from user_by_email($1)', [payload.email]);
+        const { rows } = await query('SELECT * FROM user_by_email($1)', [payload.email]);
 
         if (rows.length === 0) {
             return res.status(404).json({ error: 'Пользователь не найден' });
         }
 
         const user = rows[0];
+
         res.json({
             user: {
                 id: user.id,
@@ -176,29 +164,27 @@ router.get('/profile', async (req, res, next) => {
         });
     } catch (e) {
         if (e.name === 'JsonWebTokenError' || e.name === 'TokenExpiredError') {
-            return res.status(401).json({ error: 'Неверный или истекший токен' });
+            return res.status(401).json({ error: 'Неверный токен' });
         }
-        next(e);
+        res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
-router.get('/check-admin', async (req, res, next) => {
+router.get('/check-admin', async (req, res) => {
     try {
         const token = req.headers.authorization?.split(' ')[1];
-
-        if (!token) {
-            return res.status(401).json({ error: 'Требуется авторизация' });
-        }
+        if (!token) return res.status(401).json({ isAdmin: false });
 
         const payload = jwt.verify(token, process.env.JWT_SECRET);
-        const isAdmin = payload.role === 'admin';
+        const { rows } = await query('SELECT role_name FROM user_by_email($1)', [payload.email]);
 
-        res.json({ isAdmin });
-    } catch (e) {
-        if (e.name === 'JsonWebTokenError' || e.name === 'TokenExpiredError') {
-            return res.status(401).json({ error: 'Неверный или истекший токен' });
+        if (rows.length === 0) {
+            return res.json({ isAdmin: false });
         }
-        next(e);
+
+        res.json({ isAdmin: rows[0].role_name === 'admin' });
+    } catch (error) {
+        res.json({ isAdmin: false });
     }
 });
 

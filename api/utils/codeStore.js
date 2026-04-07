@@ -25,9 +25,7 @@ export function verifyCode(email, code) {
             Buffer.from(code)
         );
 
-        if (!isMatch) {
-            return false;
-        }
+        if (!isMatch) return false;
     } catch (e) {
         return false;
     }
@@ -36,6 +34,7 @@ export function verifyCode(email, code) {
     return true;
 }
 
+// Periodic cleanup of expired codes
 setInterval(() => {
     const now = Date.now();
     for (const [email, data] of codes.entries()) {
