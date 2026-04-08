@@ -14,6 +14,8 @@ import wingetRouter from './routers/winget.js';
 dotenv.config({ path: './api/.env' });
 
 const app = express();
+app.set('trust proxy', 1); // на Render запросы идут через прокси
+
 const PORT = Number(process.env.PORT ?? 3000);
 
 const __filename = fileURLToPath(import.meta.url);
