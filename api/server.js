@@ -19,6 +19,9 @@ const PORT = Number(process.env.PORT ?? 3000);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Отдаём собранный фронтенд (ДО всех middleware)
+const distPath = path.join(__dirname, '..', 'dist');
+app.use(express.static(distPath));
 
 // Helmet только для API
 app.use('/api', helmet({
@@ -29,10 +32,11 @@ app.use('/api', helmet({
 
 const allowedOrigins = [
     'http://localhost:5173',
-    'http://localhost:3000'
+    'http://localhost:3000',
+    'https://winpack.onrender.com'
 ];
 
-app.use(cors({
+app.use('/api', cors({
     origin: (origin, callback) => {
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
@@ -46,18 +50,12 @@ app.use(cors({
 app.use(morgan('dev'));
 app.use(express.json({ limit: '10mb' }));
 
-
-// Отдаём собранный фронтенд
-const distPath = path.join(__dirname, '..', 'dist');
-app.use(express.static(distPath));
-
 app.use('/api/home', homeRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRouter);
 app.use('/api/winget', wingetRouter);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
-
 
 // Все остальные маршруты — на index.html (для Vue Router)
 app.get('/{*path}', (_req, res) => {
@@ -66,12 +64,7 @@ app.get('/{*path}', (_req, res) => {
 
 app.use((err, _req, res, _next) => {
     console.error('Server error:', err.message);
-
-    if (process.env.NODE_ENV === 'production') {
-        res.status(500).json({ error: 'Internal server error' });
-    } else {
-        res.status(500).json({ error: err.message });
-    }
+    res.status(500).json({ error: 'Internal server error' });
 });
 
 app.listen(PORT, () => {
