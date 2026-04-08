@@ -432,11 +432,7 @@ onUnmounted(() => {
 
 .hero-row { display: flex; align-items: center; justify-content: space-between; padding: 0.5208vw 1.9271vw; }
 
-.logo-btn {
-  background: transparent; border: none; cursor: pointer; padding: 0;
-  display: flex; align-items: center; justify-content: center;
-  transition: filter 0.15s ease;
-}
+.logo-btn { background: transparent; border: none; cursor: pointer; padding: 0; display: flex; align-items: center; justify-content: center; transition: filter 0.15s ease; }
 .logo-btn:hover { filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.6)); }
 .logo-btn img { width: 2.0833vw; height: 2.8125vw; object-fit: contain; }
 
