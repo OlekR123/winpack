@@ -11,29 +11,28 @@ import authRoutes from './routers/auth.js';
 import adminRouter from './routers/admin.js';
 import wingetRouter from './routers/winget.js';
 
-dotenv.config({ path: './api/.env' });
-// Fallback: если .env рядом с server.js
-dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '.env') });
-
-const app = express();
-app.set('trust proxy', true); // Render: доверять X-Forwarded-For
-
-const PORT = Number(process.env.PORT ?? 3000);
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Отдаём собранный фронтенд (ДО всех middleware)
+// Загрузка .env — пробуем оба пути
+dotenv.config({ path: path.join(__dirname, '.env') });
+dotenv.config({ path: './api/.env' });
+
+const app = express();
+app.set('trust proxy', true);
+
+const PORT = Number(process.env.PORT ?? 3000);
 const distPath = path.join(__dirname, '..', 'dist');
-app.use(express.static(distPath));
 
-// Helmet только для API
-app.use('/api', helmet({
-    contentSecurityPolicy: false,
-    crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: false
-}));
+// ====== ПОРЯДОК MIDDLEWARE ВАЖЕН ======
 
+// 1. Логирование — самое первое, чтобы видеть ВСЕ запросы
+app.use(morgan('dev'));
+
+// 2. Body parser — ГЛОБАЛЬНО, до роутов
+app.use(express.json({ limit: '10mb' }));
+
+// 3. CORS — для /api
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
@@ -45,22 +44,30 @@ app.use('/api', cors({
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
         } else {
+            console.log('[CORS] Blocked origin:', origin);
             callback(new Error('Not allowed by CORS'));
         }
     },
     credentials: true
 }));
 
-app.use(morgan('dev'));
-app.use(express.json({ limit: '10mb' }));
+// 4. Helmet — после CORS
+app.use('/api', helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: false
+}));
 
+// 5. API роуты — ДО статики, чтобы /api точно обрабатывался Express
 app.use('/api/home', homeRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRouter);
 app.use('/api/winget', wingetRouter);
 
+// 6. Health check
 app.get('/api/health', (_req, res) => res.json({
     ok: true,
+    version: '2.0',
     env: {
         EMAIL_USER: process.env.EMAIL_USER ? 'set' : 'MISSING',
         EMAIL_PASS: process.env.EMAIL_PASS ? 'set' : 'MISSING',
@@ -70,11 +77,15 @@ app.get('/api/health', (_req, res) => res.json({
     }
 }));
 
-// Все остальные маршруты — на index.html (для Vue Router)
+// 7. Статика фронтенда — ПОСЛЕ API роутов
+app.use(express.static(distPath));
+
+// 8. SPA fallback — самое последнее
 app.get('/{*path}', (_req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
 });
 
+// 9. Обработка ошибок
 app.use((err, _req, res, _next) => {
     console.error('Server error:', err.message);
     res.status(500).json({ error: 'Internal server error' });
@@ -82,4 +93,6 @@ app.use((err, _req, res, _next) => {
 
 app.listen(PORT, () => {
     console.log(`API listening http://localhost:${PORT}`);
+    console.log(`EMAIL_USER: ${process.env.EMAIL_USER ? 'set' : 'MISSING'}`);
+    console.log(`EMAIL_PASS: ${process.env.EMAIL_PASS ? 'set' : 'MISSING'}`);
 });
