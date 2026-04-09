@@ -27,11 +27,7 @@ const sendCodeLimiter = rateLimit({
     message: { error: 'Слишком много попыток' },
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => {
-        const key = req.ip || req.headers['x-forwarded-for'] || 'unknown';
-        console.log('[rate-limit] send-code key:', key);
-        return key;
-    }
+    validate: { trustProxy: false }
 });
 
 const loginLimiter = rateLimit({
@@ -40,9 +36,7 @@ const loginLimiter = rateLimit({
     message: { error: 'Слишком много попыток входа' },
     standardHeaders: true,
     legacyHeaders: false,
-    keyGenerator: (req) => {
-        return req.ip || req.headers['x-forwarded-for'] || 'unknown';
-    }
+    validate: { trustProxy: false }
 });
 
 router.post('/send-code', sendCodeLimiter, async (req, res) => {
