@@ -11,7 +11,16 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+// Проверяем подключение при старте
+transporter.verify()
+    .then(() => console.log('[mailer] SMTP подключение OK'))
+    .catch(err => console.error('[mailer] SMTP подключение ОШИБКА:', err.message));
+
 export async function sendVerificationCode(email, code) {
+    console.log('[mailer] Подготовка письма для:', email);
+    console.log('[mailer] EMAIL_USER:', process.env.EMAIL_USER ? '***настроен***' : '!!! НЕ ЗАДАН !!!');
+    console.log('[mailer] EMAIL_PASS:', process.env.EMAIL_PASS ? '***настроен***' : '!!! НЕ ЗАДАН !!!');
+
     const mailOptions = {
         from: `"WinPack" <${process.env.EMAIL_USER}>`,
         to: email,
@@ -30,8 +39,11 @@ export async function sendVerificationCode(email, code) {
     };
 
     try {
-        await transporter.sendMail(mailOptions);
+        const info = await transporter.sendMail(mailOptions);
+        console.log('[mailer] Письмо отправлено, messageId:', info.messageId);
     } catch (error) {
+        console.error('[mailer] Ошибка отправки:', error.message);
+        console.error('[mailer] Код ошибки:', error.code);
         throw new Error(`Не удалось отправить письмо: ${error.message}`);
     }
 }

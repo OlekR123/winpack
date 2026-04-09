@@ -23,42 +23,77 @@ function signToken(payload) {
 
 const sendCodeLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 3,
+    max: 5,
     message: { error: 'Слишком много попыток' },
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    keyGenerator: (req) => {
+        const key = req.ip || req.headers['x-forwarded-for'] || 'unknown';
+        console.log('[rate-limit] send-code key:', key);
+        return key;
+    }
 });
 
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 5,
+    max: 10,
     message: { error: 'Слишком много попыток входа' },
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    keyGenerator: (req) => {
+        return req.ip || req.headers['x-forwarded-for'] || 'unknown';
+    }
 });
 
 router.post('/send-code', sendCodeLimiter, async (req, res) => {
+    console.log('[send-code] === START ===');
+    console.log('[send-code] IP:', req.ip);
+    console.log('[send-code] X-Forwarded-For:', req.headers['x-forwarded-for']);
+    console.log('[send-code] Content-Type:', req.headers['content-type']);
+    console.log('[send-code] Body:', JSON.stringify(req.body));
+
     try {
         const { email, password, password2 } = req.body;
-        if (!email) return res.status(400).json({ error: 'Email обязателен' });
-        if (!isValidEmail(email)) return res.status(400).json({ error: 'Неверный формат email' });
-        if (!password || !password2) return res.status(400).json({ error: 'Пароли обязательны' });
-        if (password !== password2) return res.status(400).json({ error: 'Пароли не совпадают' });
-        if (!isValidPassword(password)) return res.status(400).json({ error: 'Пароль: 8+ символов, a-z, A-Z, 0-9' });
+        if (!email) {
+            console.log('[send-code] FAIL: email отсутствует');
+            return res.status(400).json({ error: 'Email обязателен' });
+        }
+        if (!isValidEmail(email)) {
+            console.log('[send-code] FAIL: невалидный email:', email);
+            return res.status(400).json({ error: 'Неверный формат email' });
+        }
+        if (!password || !password2) {
+            console.log('[send-code] FAIL: пароли отсутствуют');
+            return res.status(400).json({ error: 'Пароли обязательны' });
+        }
+        if (password !== password2) {
+            console.log('[send-code] FAIL: пароли не совпадают');
+            return res.status(400).json({ error: 'Пароли не совпадают' });
+        }
+        if (!isValidPassword(password)) {
+            console.log('[send-code] FAIL: слабый пароль');
+            return res.status(400).json({ error: 'Пароль: 8+ символов, a-z, A-Z, 0-9' });
+        }
 
+        console.log('[send-code] Проверяем email в БД...');
         const { rows } = await query('SELECT * FROM user_by_email($1)', [email]);
 
         if (rows.length > 0) {
+            console.log('[send-code] FAIL: email уже зарегистрирован');
             return res.status(409).json({ error: 'Email уже зарегистрирован' });
         }
 
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         saveCode(email, code);
+
+        console.log('[send-code] Отправляем письмо на:', email);
         await sendVerificationCode(email, code);
 
+        console.log('[send-code] SUCCESS: код отправлен');
         res.json({ ok: true, message: 'Код отправлен' });
     } catch (e) {
-        console.error('/send-code error:', e.message);
+        console.error('[send-code] ERROR:', e.message);
+        console.error('[send-code] STACK:', e.stack);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });

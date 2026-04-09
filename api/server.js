@@ -12,9 +12,11 @@ import adminRouter from './routers/admin.js';
 import wingetRouter from './routers/winget.js';
 
 dotenv.config({ path: './api/.env' });
+// Fallback: если .env рядом с server.js
+dotenv.config({ path: path.join(path.dirname(fileURLToPath(import.meta.url)), '.env') });
 
 const app = express();
-app.set('trust proxy', 1); // на Render запросы идут через прокси
+app.set('trust proxy', true); // Render: доверять X-Forwarded-For
 
 const PORT = Number(process.env.PORT ?? 3000);
 
@@ -57,7 +59,16 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRouter);
 app.use('/api/winget', wingetRouter);
 
-app.get('/api/health', (_req, res) => res.json({ ok: true }));
+app.get('/api/health', (_req, res) => res.json({
+    ok: true,
+    env: {
+        EMAIL_USER: process.env.EMAIL_USER ? 'set' : 'MISSING',
+        EMAIL_PASS: process.env.EMAIL_PASS ? 'set' : 'MISSING',
+        JWT_SECRET: process.env.JWT_SECRET ? 'set' : 'MISSING',
+        PGHOST: process.env.PGHOST ? 'set' : 'MISSING',
+        NODE_ENV: process.env.NODE_ENV || 'not set'
+    }
+}));
 
 // Все остальные маршруты — на index.html (для Vue Router)
 app.get('/{*path}', (_req, res) => {
