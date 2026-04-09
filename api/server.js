@@ -14,7 +14,6 @@ import wingetRouter from './routers/winget.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Загрузка .env — пробуем оба пути
 dotenv.config({ path: path.join(__dirname, '.env') });
 dotenv.config({ path: './api/.env' });
 
@@ -24,7 +23,7 @@ app.set('trust proxy', true);
 const PORT = Number(process.env.PORT ?? 3000);
 const distPath = path.join(__dirname, '..', 'dist');
 
-// ====== ПОРЯДОК MIDDLEWARE ВАЖЕН ======
+// ПОРЯДОК MIDDLEWARE ВАЖЕН
 
 // 1. Логирование — самое первое, чтобы видеть ВСЕ запросы
 app.use(morgan('dev'));
@@ -69,10 +68,9 @@ app.use('/api/winget', wingetRouter);
 // 6. Health check
 app.get('/api/health', (_req, res) => res.json({
     ok: true,
-    version: '2.0',
+    version: '3.0',
     env: {
-        EMAIL_USER: process.env.EMAIL_USER ? 'set' : 'MISSING',
-        EMAIL_PASS: process.env.EMAIL_PASS ? 'set' : 'MISSING',
+        RESEND_API_KEY: process.env.RESEND_API_KEY ? 'set' : 'MISSING',
         JWT_SECRET: process.env.JWT_SECRET ? 'set' : 'MISSING',
         PGHOST: process.env.PGHOST ? 'set' : 'MISSING',
         NODE_ENV: process.env.NODE_ENV || 'not set'
@@ -95,6 +93,4 @@ app.use((err, _req, res, _next) => {
 
 app.listen(PORT, () => {
     console.log(`API listening http://localhost:${PORT}`);
-    console.log(`EMAIL_USER: ${process.env.EMAIL_USER ? 'set' : 'MISSING'}`);
-    console.log(`EMAIL_PASS: ${process.env.EMAIL_PASS ? 'set' : 'MISSING'}`);
 });
