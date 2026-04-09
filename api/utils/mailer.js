@@ -1,29 +1,32 @@
-import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 dotenv.config({ path: './api/.env' });
 
-const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    }
-});
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const FROM_EMAIL = process.env.FROM_EMAIL || 'WinPack <onboarding@resend.dev>';
 
-// Проверяем подключение при старте
-transporter.verify()
-    .then(() => console.log('[mailer] SMTP подключение OK'))
-    .catch(err => console.error('[mailer] SMTP подключение ОШИБКА:', err.message));
+if (!RESEND_API_KEY) {
+    console.error('[mailer] RESEND_API_KEY не задан!');
+} else {
+    console.log('[mailer] Resend API ключ настроен');
+}
 
 export async function sendVerificationCode(email, code) {
-    console.log('[mailer] Подготовка письма для:', email);
-    console.log('[mailer] EMAIL_USER:', process.env.EMAIL_USER ? '***настроен***' : '!!! НЕ ЗАДАН !!!');
-    console.log('[mailer] EMAIL_PASS:', process.env.EMAIL_PASS ? '***настроен***' : '!!! НЕ ЗАДАН !!!');
+    console.log('[mailer] Отправка через Resend API на:', email);
+    console.log('[mailer] RESEND_API_KEY:', RESEND_API_KEY ? '***настроен***' : '!!! НЕ ЗАДАН !!!');
+    console.log('[mailer] FROM_EMAIL:', FROM_EMAIL);
 
-    const mailOptions = {
-        from: `"WinPack" <${process.env.EMAIL_USER}>`,
-        to: email,
+    if (!RESEND_API_KEY) {
+        throw new Error('RESEND_API_KEY не настроен');
+    }
+
+    const body = {
+        from: FROM_EMAIL,
+        to: [email],
         subject: 'Код подтверждения регистрации',
         html: `
             <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -39,11 +42,25 @@ export async function sendVerificationCode(email, code) {
     };
 
     try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log('[mailer] Письмо отправлено, messageId:', info.messageId);
+        const response = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${RESEND_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(body)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            console.error('[mailer] Resend ошибка:', data);
+            throw new Error(`Resend API error: ${data.message || JSON.stringify(data)}`);
+        }
+
+        console.log('[mailer] Письмо отправлено, id:', data.id);
     } catch (error) {
         console.error('[mailer] Ошибка отправки:', error.message);
-        console.error('[mailer] Код ошибки:', error.code);
         throw new Error(`Не удалось отправить письмо: ${error.message}`);
     }
 }
