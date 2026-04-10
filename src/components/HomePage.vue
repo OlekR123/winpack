@@ -66,10 +66,18 @@
       </div>
     </section>
 
-    <div class="programs-action-wrapper">
+    <div class="programs-action-wrapper" ref="programsBtnRef">
       <button class="programs-generate-btn" @click="handleDownloadPrograms">Сформировать скрипт установки программ</button>
       <button class="guide-open-link" @click="openProgramsGuide">Открыть инструкцию по установке</button>
     </div>
+
+    <!-- FIX Плавающая кнопка: снизу если не долистали, сверху если пролистали мимо -->
+    <transition name="float-btn">
+      <div v-if="hasSelectedPrograms && !isOriginalBtnVisible"
+           :class="['floating-action-btn', isScrolledPastBtn ? 'float-top' : 'float-bottom']">
+        <button class="programs-generate-btn" @click="handleDownloadPrograms">Сформировать скрипт установки программ</button>
+      </div>
+    </transition>
 
     <section class="warning-section">
       <div class="warning-middle">
@@ -92,8 +100,12 @@
         <div v-for="setCat in settingCategories" :key="setCat.id" class="settings-block">
           <h3 class="settings-block-title">{{ setCat.title }}</h3>
           <div class="settings-list">
+            <!-- [FIX] Чекбоксы настроек теперь в едином стиле с программами -->
             <label v-for="setting in categorySettings[setCat.id]" :key="setting.id" class="setting-item" @click="showAuthMessage">
-              <input type="checkbox" class="setting-checkbox" disabled @click.prevent />
+              <div class="setting-checkbox-wrapper">
+                <input type="checkbox" class="setting-checkbox-input" disabled @click.prevent />
+                <span class="setting-checkbox-label"></span>
+              </div>
               <span class="setting-label">{{ setting.label }}</span>
             </label>
           </div>
@@ -137,7 +149,6 @@
       </div>
     </footer>
 
-    <!-- Auth modals -->
     <div v-if="showAuthModal" class="auth-overlay" @mousedown="handleOverlayClick">
       <div class="auth-modal" @click.stop>
         <h3 class="auth-title">{{ authTab === 'login' ? 'Приветствуем!' : 'Регистрация' }}</h3>
@@ -178,7 +189,6 @@
 
     <div v-if="authErrorToast" class="auth-toast-error">{{ authErrorToast }}</div>
 
-    <!-- Programs guide modal -->
     <div v-if="showProgramsGuide" class="auth-overlay" @mousedown.self="closeProgramsGuide">
       <div class="auth-modal config-modal-wide" @click.stop>
         <h3 class="auth-title">Инструкция по установке программ</h3>
@@ -214,7 +224,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { images as img, drivers } from '../assets/images.js';
 import { useAuthStore } from '../stores/auth.js';
@@ -244,6 +254,13 @@ const authErrorToast = ref('');
 const formLogin = ref({ email: '', password: '' });
 const formRegister = ref({ email: '', password: '', password2: '' });
 const formCode = ref({ code: '' });
+
+/* FIX Плавающая кнопка: отслеживаем выбор и видимость оригинальной кнопки */
+const programsBtnRef = ref(null);
+const isOriginalBtnVisible = ref(true);
+const isScrolledPastBtn = ref(false);
+const hasSelectedPrograms = computed(() => Object.values(selectedPrograms).some(Boolean));
+let observer = null;
 
 let resizeTimeout;
 
@@ -375,10 +392,28 @@ onMounted(() => {
   loadCategories();
   loadSettings();
   window.addEventListener('resize', debouncedResize);
+
+  /* FIX следим за видимостью + позицией относительно кнопки */
+  setTimeout(() => {
+    if (programsBtnRef.value) {
+      observer = new IntersectionObserver(
+          ([entry]) => {
+            isOriginalBtnVisible.value = entry.isIntersecting;
+            if (!entry.isIntersecting) {
+              /* boundingClientRect.top < 0 — значит кнопка уехала вверх, пользователь ниже неё */
+              isScrolledPastBtn.value = entry.boundingClientRect.top < 0;
+            }
+          },
+          { threshold: 0.1 }
+      );
+      observer.observe(programsBtnRef.value);
+    }
+  }, 500);
 });
 
 onUnmounted(() => {
   window.removeEventListener('resize', debouncedResize);
+  if (observer) observer.disconnect();
 });
 </script>
 
@@ -459,13 +494,26 @@ onUnmounted(() => {
 .warning-text, .warning-text-2 { color: #1f2937; font-size: 1.0417vw; line-height: 1.5; margin: 0 0 1.0417vw 0; font-weight: 300; }
 .warning-footer, .warning-footer-2 { color: #1f2937; font-size: 1.0417vw; line-height: 1.4; margin: 0; font-weight: 300; }
 
-.settings-block { background: #f7f7f7; border-radius: 0.8333vw; padding: 1.5625vw; margin-top: 3.125vw; }
+.settings-block { background: #f7f7f7; border-radius: 0.8333vw; padding: 3.125vw; margin-top: 3.125vw; }
 .settings-block-title { font-size: 1.25vw; color: #1f2937; margin: 0 0 1.0417vw 0; font-weight: 400; line-height: 1.4; }
 .settings-list { display: flex; flex-direction: column; gap: 0.7813vw; }
 .setting-item { display: flex; align-items: center; gap: 0.625vw; cursor: not-allowed; }
-.setting-checkbox { width: 1.0417vw; height: 1.0417vw; cursor: not-allowed; accent-color: #facc15; pointer-events: none; }
+/* FIX Чекбоксы настроек — единый стиль с чекбоксами программ */
+.setting-checkbox-wrapper { position: relative; flex-shrink: 0; }
+.setting-checkbox-input { position: absolute; opacity: 0; cursor: not-allowed; width: 0; height: 0; }
+.setting-checkbox-label { position: relative; cursor: not-allowed; width: 1.5vw; height: 1.5vw; background: #fff; border: 0.1042vw solid #d1d5db; border-radius: 0.2083vw; display: block; transition: all 0.15s ease; }
 .setting-label { font-size: 1.0417vw; color: #1f2937; line-height: 1.4; }
-.config-button { width: 100%; padding: 0.5vw 0.8vw; background: #facc15; color: #1f2937; border: none; border-radius: 0.4vw; font-size: 1.25vw; font-weight: 500; font-family: inherit; cursor: not-allowed; opacity: 0.6; line-height: 1.2; margin-top: 1.5625vw; }
+.config-button { width: 100%; padding: 0.5vw 0.8vw; background: #facc15; color: #1f2937; border: none; border-radius: 0.4vw; font-size: 1.25vw; font-weight: 500; font-family: inherit; cursor: not-allowed; opacity: 0.6; line-height: 1.2; margin-top: 3.125vw; }
+
+/* FIX Плавающая кнопка */
+.floating-action-btn { position: fixed; left: 17.4479vw; right: 17.4479vw; z-index: 9998; }
+.floating-action-btn.float-bottom { bottom: 3.125vw; }
+.floating-action-btn.float-top { top: 3.125vw; }
+.floating-action-btn .programs-generate-btn { box-shadow: 0 0.1042vw 0.4167vw rgba(0,0,0,0.08); }
+.floating-action-btn .programs-generate-btn:hover { transform: translateY(-0.0625vw); box-shadow: 0 0.2083vw 0.4167vw rgba(0,0,0,0.1); }
+.float-btn-enter-active, .float-btn-leave-active { transition: transform 0.25s ease, opacity 0.25s ease; }
+.float-bottom.float-btn-enter-from, .float-bottom.float-btn-leave-to { transform: translateY(100%); opacity: 0; }
+.float-top.float-btn-enter-from, .float-top.float-btn-leave-to { transform: translateY(-100%); opacity: 0; }
 
 .auth-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: #1f2937; color: #fff; padding: 12px 24px; border-radius: 8px; font-size: 16px; z-index: 9999; animation: slideDown 0.3s ease; }
 @keyframes slideDown { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
@@ -555,12 +603,18 @@ onUnmounted(() => {
   .warning-title, .warning-title-2 { font-size: 20px; margin-bottom: 16px; }
   .warning-text, .warning-text-2 { font-size: 16px; margin-bottom: 16px; }
   .warning-footer, .warning-footer-2 { font-size: 16px; }
-  .settings-block { border-radius: 12px; padding: 24px; margin-top: 40px; }
+  /* FIX Адаптив padding для settings-block и config-button */
+  .settings-block { border-radius: 12px; padding: 40px; margin-top: 40px; }
   .settings-block-title { font-size: 20px; margin-bottom: 16px; }
   .settings-list { gap: 12px; }
-  .setting-checkbox { width: 18px; height: 18px; }
+  /* FIX Чекбоксы настроек — адаптив 1200 */
+  .setting-checkbox-label { width: 24px; height: 24px; border-width: 2px; border-radius: 4px; }
   .setting-label { font-size: 16px; }
-  .config-button { padding: 1.2vw 1.5vw; font-size: 20px; margin-top: 24px; }
+  .config-button { padding: 1.2vw 1.5vw; font-size: 20px; margin-top: 40px; }
+  /* FIX Плавающая кнопка — адаптив 1200 */
+  .floating-action-btn { left: 60px; right: 60px; }
+  .floating-action-btn.float-bottom { bottom: 40px; }
+  .floating-action-btn.float-top { top: 40px; }
   .feedback-section { border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; padding: 40px 0; }
   .feedback-container { margin: 0 60px; gap: 40px; }
   .feedback-qr { width: 200px; height: 200px; }
@@ -629,12 +683,18 @@ onUnmounted(() => {
   .warning-title, .warning-title-2 { font-size: 16px; margin-bottom: 12px; line-height: 1.4; }
   .warning-text, .warning-text-2 { font-size: 14px; margin-bottom: 12px; line-height: 1.6; }
   .warning-footer, .warning-footer-2 { font-size: 14px; }
-  .settings-block { border-radius: 8px; padding: 20px; margin-top: 32px; }
+  /* FIX Адаптив padding для settings-block и config-button */
+  .settings-block { border-radius: 8px; padding: 24px; margin-top: 32px; }
   .settings-block-title { font-size: 18px; margin-bottom: 12px; }
   .settings-list { gap: 10px; }
-  .setting-checkbox { width: 16px; height: 16px; }
+  /* FIX Чекбоксы настроек — адаптив 768 */
+  .setting-checkbox-label { width: 22px; height: 22px; border-width: 2px; border-radius: 3px; }
   .setting-label { font-size: 14px; }
-  .config-button { padding: 10px 16px; font-size: 16px; margin-top: 20px; }
+  .config-button { padding: 10px 16px; font-size: 16px; margin-top: 24px; }
+  /* FIX Плавающая кнопка — адаптив 768 */
+  .floating-action-btn { left: 24px; right: 24px; }
+  .floating-action-btn.float-bottom { bottom: 24px; }
+  .floating-action-btn.float-top { top: 24px; }
   .feedback-section { border-radius: 0; padding: 32px 0; }
   .feedback-container { flex-direction: column; margin: 0 24px; gap: 24px; text-align: center; }
   .feedback-qr { width: 180px; height: 180px; }
