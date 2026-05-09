@@ -8,12 +8,12 @@ import rateLimit from 'express-rate-limit';
 
 const router = Router();
 
-function isValidEmail(email) {
+export function isValidEmail(email) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
 }
 
-function isValidPassword(password) {
+export function isValidPassword(password) {
     return password?.length >= 8 && /[a-z]/.test(password) && /[A-Z]/.test(password) && /[0-9]/.test(password);
 }
 
