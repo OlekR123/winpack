@@ -6,6 +6,13 @@
 
     <div class="table-container">
       <table class="admin-table">
+        <colgroup>
+          <col class="col-id" />
+          <col class="col-cat" />
+          <col class="col-label" />
+          <col class="col-ps" />
+          <col class="col-actions" />
+        </colgroup>
         <thead>
         <tr>
           <th>ID</th>
@@ -18,8 +25,8 @@
         <tbody>
         <tr v-for="sett in settings" :key="sett.id">
           <td>{{ sett.id }}</td>
-          <td>{{ getCategoryTitle(sett.category_id) }}</td>
-          <td>{{ sett.label }}</td>
+          <td class="cell-wrap">{{ getCategoryTitle(sett.category_id) }}</td>
+          <td class="cell-wrap">{{ sett.label }}</td>
           <td class="ps-command"><span class="ps-text">{{ sett.ps_command }}</span></td>
           <td>
             <div class="actions">
@@ -193,7 +200,13 @@ function openPerplexity() {
 .page-header { margin-bottom: 3.125vw; }
 .page-title { font-size: 2.0833vw; line-height: 1.1; color: #1f2937; margin: 0; font-weight: 400; }
 .table-container { background: #ffffff; border-radius: 1.25vw; margin-bottom: 3.125vw; overflow: hidden; }
-.admin-table { width: 100%; border-collapse: collapse; }
+.admin-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.admin-table .col-id { width: 5%; }
+.admin-table .col-cat { width: 14%; }
+.admin-table .col-label { width: 22%; }
+.admin-table .col-ps { width: auto; }
+.admin-table .col-actions { width: 18.5vw; }
+.cell-wrap { overflow-wrap: anywhere; word-break: break-word; }
 .admin-table thead { background: #f7f7f7; }
 .admin-table th { padding: 1.0417vw; text-align: left; font-weight: 400; color: #1f2937; font-size: 1.0417vw; border-bottom: 0.1042vw solid #e5e7eb; }
 .admin-table td { padding: 1.0417vw; color: #1f2937; font-size: 1.0417vw; border-bottom: 0.0521vw solid #e5e7eb; }

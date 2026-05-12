@@ -6,6 +6,13 @@
 
     <div class="table-container">
       <table class="admin-table">
+        <colgroup>
+          <col class="col-id" />
+          <col class="col-email" />
+          <col class="col-role" />
+          <col class="col-date" />
+          <col class="col-actions" />
+        </colgroup>
         <thead>
         <tr>
           <th>ID</th>
@@ -18,7 +25,7 @@
         <tbody>
         <tr v-for="user in users" :key="user.id">
           <td>{{ user.id }}</td>
-          <td>{{ user.email }}</td>
+          <td class="cell-wrap">{{ user.email }}</td>
           <td>{{ user.role_name }}</td>
           <td>{{ formatDate(user.created_at) }}</td>
           <td>
@@ -165,7 +172,13 @@ function formatDate(dateStr) {
 .page-header { margin-bottom: 3.125vw; }
 .page-title { font-size: 2.0833vw; line-height: 1.1; color: #1f2937; margin: 0; font-weight: 400; }
 .table-container { background: #ffffff; border-radius: 1.25vw; margin-bottom: 3.125vw; overflow: hidden; }
-.admin-table { width: 100%; border-collapse: collapse; }
+.admin-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.admin-table .col-id { width: 5%; }
+.admin-table .col-email { width: auto; }
+.admin-table .col-role { width: 10%; }
+.admin-table .col-date { width: 13%; }
+.admin-table .col-actions { width: 22vw; }
+.cell-wrap { overflow-wrap: anywhere; word-break: break-word; }
 .admin-table thead { background: #f7f7f7; }
 .admin-table th { padding: 1.0417vw; text-align: left; font-weight: 400; color: #1f2937; font-size: 1.0417vw; border-bottom: 0.1042vw solid #e5e7eb; }
 .admin-table td { padding: 1.0417vw; color: #1f2937; font-size: 1.0417vw; border-bottom: 0.0521vw solid #e5e7eb; }

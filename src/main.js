@@ -6,6 +6,19 @@ import HomePage from './components/HomePage.vue';
 import ProfilePage from './components/ProfilePage.vue';
 import AdminDashboard from './components/AdminDashboard.vue';
 
+if ('scrollRestoration' in window.history) {
+    window.history.scrollRestoration = 'manual';
+}
+
+const SCROLL_KEY = 'winpack:scroll';
+
+window.addEventListener('beforeunload', () => {
+    sessionStorage.setItem(SCROLL_KEY, JSON.stringify({
+        path: window.location.pathname,
+        y: window.scrollY
+    }));
+});
+
 const routes = [
     { path: '/', component: HomePage },
     { path: '/profile', component: ProfilePage, meta: { requiresAuth: true } },
@@ -14,7 +27,29 @@ const routes = [
 
 const router = createRouter({
     history: createWebHistory(),
-    routes
+    routes,
+    scrollBehavior(to, from, savedPosition) {
+        if (savedPosition) {
+            return new Promise(resolve => {
+                setTimeout(() => resolve(savedPosition), 200);
+            });
+        }
+        if (!from.name) {
+            try {
+                const raw = sessionStorage.getItem(SCROLL_KEY);
+                if (raw) {
+                    const saved = JSON.parse(raw);
+                    if (saved.path === to.path && typeof saved.y === 'number') {
+                        sessionStorage.removeItem(SCROLL_KEY);
+                        return new Promise(resolve => {
+                            setTimeout(() => resolve({ top: saved.y, behavior: 'instant' }), 200);
+                        });
+                    }
+                }
+            } catch (e) {}
+        }
+        return { top: 0 };
+    }
 });
 
 router.beforeEach((to, from, next) => {

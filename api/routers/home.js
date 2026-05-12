@@ -145,7 +145,26 @@ router.get('/user-script/:userId', requireAuth, requireOwnership, async (req, re
         }
 
         const scripts = rows[0].script_commands.toString();
-        const fullScript = `# WinPack Configuration Script\n${scripts}\n`;
+        const header = [
+            '# WinPack - Скрипт применения настроек',
+            `# Дата генерации: ${new Date().toLocaleString('ru-RU')}`,
+            '',
+            '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8',
+            'chcp 65001 > $null',
+            '',
+            'Write-Host "Применение настроек..." -ForegroundColor Cyan',
+            'Write-Host ""',
+            ''
+        ].join('\n');
+        const footer = [
+            '',
+            'Write-Host ""',
+            'Write-Host "Все настройки применены!" -ForegroundColor Green',
+            'Write-Host "Нажмите любую клавишу для выхода..." -ForegroundColor Yellow',
+            '$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")',
+            ''
+        ].join('\n');
+        const fullScript = `${header}${scripts}${footer}`;
 
         res.setHeader('Content-Type', 'application/octet-stream; charset=utf-8');
         res.setHeader('Content-Disposition', 'attachment; filename="WinPackConfig.ps1"');

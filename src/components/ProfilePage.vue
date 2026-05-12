@@ -86,8 +86,8 @@
 
     <!-- FIX Плавающая кнопка программ -->
     <transition name="float-btn">
-      <div v-if="hasSelectedPrograms && !isProgramsBtnVisible"
-           :class="['floating-action-btn', isScrolledPastProgramsBtn ? 'float-top' : 'float-bottom']">
+      <div v-if="showFloatingPrograms"
+           :class="['floating-action-btn', isScrolledPastProgramsBtn ? 'float-top' : 'float-bottom', { 'stack-first': bothFloating }]">
         <button class="programs-generate-btn" @click="handleDownloadPrograms">Сформировать скрипт установки программ</button>
       </div>
     </transition>
@@ -130,9 +130,10 @@
         </div>
 
         <!-- FIX Плавающая кнопка настроек -->
+        <!-- FIX Плавающая кнопка настроек -->
         <transition name="float-btn">
-          <div v-if="hasSelectedSettings && !isConfigBtnVisible"
-               :class="['floating-action-btn', isScrolledPastConfigBtn ? 'float-top' : 'float-bottom']">
+          <div v-if="showFloatingConfig"
+               :class="['floating-action-btn', isScrolledPastConfigBtn ? 'float-top' : 'float-bottom', { 'stack-second': bothFloating }]">
             <button class="config-button floating-config-btn" @click="downloadConfig" :disabled="configLoading">
               {{ configLoading ? 'Создание конфига...' : 'Установить конфиг' }}
             </button>
@@ -281,6 +282,9 @@ const isProgramsBtnVisible = ref(true);
 const isConfigBtnVisible = ref(true);
 const isScrolledPastProgramsBtn = ref(false);
 const isScrolledPastConfigBtn = ref(false);
+const showFloatingPrograms = computed(() => hasSelectedPrograms.value && !isProgramsBtnVisible.value);
+const showFloatingConfig = computed(() => hasSelectedSettings.value && !isConfigBtnVisible.value);
+const bothFloating = computed(() => showFloatingPrograms.value && showFloatingConfig.value);
 const hasSelectedPrograms = computed(() => Object.values(selectedPrograms).some(Boolean));
 const hasSelectedSettings = computed(() => Object.values(selectedSettings).some(Boolean));
 let programsObserver = null;
@@ -601,13 +605,15 @@ onUnmounted(() => {
 .config-button:hover { transform: translateY(-0.0625vw); box-shadow: 0 0.2083vw 0.4167vw rgba(0,0,0,0.1); }
 
 /* FIX Плавающие кнопки */
-.floating-action-btn { position: fixed; left: 17.4479vw; right: 17.4479vw; z-index: 9998; }
+.floating-action-btn { position: fixed; left: 17.4479vw; right: 17.4479vw; z-index: 9998; transition: top 0.3s ease, bottom 0.3s ease; }
 .floating-action-btn.float-bottom { bottom: 3.125vw; }
+.floating-action-btn.stack-second.float-bottom { bottom: calc(3.125vw + 4.0625vw); }
+.floating-action-btn.stack-first.float-top { top: calc(3.125vw + 4.0625vw); }
 .floating-action-btn.float-top { top: 3.125vw; }
 .floating-action-btn .programs-generate-btn,
 .floating-action-btn .floating-config-btn { box-shadow: 0 0.1042vw 0.4167vw rgba(0,0,0,0.08); }
 .floating-config-btn { opacity: 1; cursor: pointer; margin-top: 0; }
-.float-btn-enter-active, .float-btn-leave-active { transition: transform 0.25s ease, opacity 0.25s ease; }
+.float-btn-enter-active, .float-btn-leave-active { transition: transform 0.3s ease, opacity 0.3s ease; }
 .float-bottom.float-btn-enter-from, .float-bottom.float-btn-leave-to { transform: translateY(100%); opacity: 0; }
 .float-top.float-btn-enter-from, .float-top.float-btn-leave-to { transform: translateY(-100%); opacity: 0; }
 
@@ -712,6 +718,8 @@ onUnmounted(() => {
   .floating-action-btn { left: 60px; right: 60px; }
   .floating-action-btn.float-bottom { bottom: 40px; }
   .floating-action-btn.float-top { top: 40px; }
+  .floating-action-btn.stack-second.float-bottom { bottom: calc(40px + 70px); }
+  .floating-action-btn.stack-first.float-top { top: calc(40px + 70px); }
   .config-modal-wide { width: 70vw; }
   .feedback-section { border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; padding: 40px 0; }
   .feedback-container { margin: 0 60px; gap: 40px; }
@@ -801,6 +809,8 @@ onUnmounted(() => {
   .floating-action-btn { left: 24px; right: 24px; }
   .floating-action-btn.float-bottom { bottom: 24px; }
   .floating-action-btn.float-top { top: 24px; }
+  .floating-action-btn.stack-second.float-bottom { bottom: calc(24px + 60px); }
+  .floating-action-btn.stack-first.float-top { top: calc(24px + 60px); }
   .config-modal-wide { width: calc(100vw - 48px); }
   .feedback-section { border-radius: 0; padding: 32px 0; }
   .feedback-container { flex-direction: column; margin: 0 24px; gap: 24px; text-align: center; }

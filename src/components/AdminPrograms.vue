@@ -6,6 +6,13 @@
 
     <div class="table-container">
       <table class="admin-table">
+        <colgroup>
+          <col class="col-id" />
+          <col class="col-name" />
+          <col class="col-cat" />
+          <col class="col-winget" />
+          <col class="col-actions" />
+        </colgroup>
         <thead>
         <tr>
           <th>ID</th>
@@ -18,9 +25,9 @@
         <tbody>
         <tr v-for="prog in programs" :key="prog.id">
           <td>{{ prog.id }}</td>
-          <td>{{ prog.name }}</td>
-          <td>{{ getCategoryTitle(prog.category_id) }}</td>
-          <td>{{ prog.winget_id || '—' }}</td>
+          <td class="cell-wrap">{{ prog.name }}</td>
+          <td class="cell-wrap">{{ getCategoryTitle(prog.category_id) }}</td>
+          <td class="cell-wrap">{{ prog.winget_id || '—' }}</td>
           <td>
             <div class="actions">
               <button class="btn-edit" @click="editProgram(prog)">Изменить</button>
@@ -50,7 +57,6 @@
               <div v-for="result in wingetResults" :key="result.id" class="winget-result-item" @click="selectWingetProgram(result)">
                 <div class="winget-result-name">{{ result.name }}</div>
                 <div class="winget-result-id">{{ result.id }}</div>
-                <div class="winget-result-desc">{{ result.description }}</div>
               </div>
             </div>
 
@@ -236,7 +242,6 @@ function clearWingetSearch() {
 function selectWingetProgram(result) {
   formData.value.name = result.name || '';
   formData.value.winget_id = result.id || '';
-  formData.value.description = result.description || '';
   formData.value.homepage_url = result.homepage || '';
   wingetSearchQuery.value = '';
   wingetResults.value = [];
@@ -297,7 +302,13 @@ async function deleteProgram(id) {
 .page-header { margin-bottom: 3.125vw; }
 .page-title { font-size: 2.0833vw; line-height: 1.1; color: #1f2937; margin: 0; font-weight: 400; }
 .table-container { background: #ffffff; border-radius: 1.25vw; margin-bottom: 3.125vw; overflow: hidden; }
-.admin-table { width: 100%; border-collapse: collapse; }
+.admin-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.admin-table .col-id { width: 5%; }
+.admin-table .col-name { width: 18%; }
+.admin-table .col-cat { width: 14%; }
+.admin-table .col-winget { width: auto; }
+.admin-table .col-actions { width: 18.5vw; }
+.cell-wrap { overflow-wrap: anywhere; word-break: break-word; }
 .admin-table thead { background: #f7f7f7; }
 .admin-table th { padding: 1.0417vw; text-align: left; font-weight: 400; color: #1f2937; font-size: 1.0417vw; border-bottom: 0.1042vw solid #e5e7eb; }
 .admin-table td { padding: 1.0417vw; color: #1f2937; font-size: 1.0417vw; border-bottom: 0.0521vw solid #e5e7eb; }
@@ -332,9 +343,11 @@ async function deleteProgram(id) {
 .form-btn-cancel:hover { color: #4b5563; opacity: 0.9; }
 .winget-search-section { margin-bottom: 1.0417vw; padding-bottom: 1.0417vw; border-bottom: 0.1042vw solid #e5e7eb; display: flex; flex-direction: column; gap: 0.5208vw; }
 .winget-search-input-group { position: relative; display: flex; align-items: center; }
-.btn-clear-search { position: absolute; right: 12px; background: transparent; border: none; color: #6b7280; font-size: 18px; cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: all 0.2s; }
+.winget-search-input-group .form-input { margin-bottom: 0; }
+.btn-clear-search { position: absolute; right: 0.5208vw; top: 50%; transform: translateY(-50%); background: transparent; border: none; color: #6b7280; font-size: 0.9375vw; line-height: 1; cursor: pointer; padding: 0.2083vw 0.4167vw; border-radius: 0.2083vw; transition: all 0.2s; }
 .btn-clear-search:hover { background: #f3f4f6; color: #1f2937; }
-.winget-results { margin-top: 12px; border: 1px solid #e5e7eb; border-radius: 8px; max-height: 300px; overflow-y: auto; background: #ffffff; }
+.btn-clear-search:hover { background: #f3f4f6; color: #1f2937; }
+.winget-results { margin-top: 0.2604vw; margin-bottom: 1.0417vw; border: 0.0521vw solid #e5e7eb; border-radius: 0.4167vw; max-height: 15.625vw; overflow-y: auto; background: #ffffff; }
 .winget-result-item { padding: 12px 16px; border-bottom: 1px solid #f3f4f6; cursor: pointer; transition: background 0.2s; }
 .winget-result-item:last-child { border-bottom: none; }
 .winget-result-item:hover { background: #f9fafb; }

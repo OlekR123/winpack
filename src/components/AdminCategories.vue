@@ -6,6 +6,12 @@
 
     <div class="table-container">
       <table class="admin-table">
+        <colgroup>
+          <col class="col-id" />
+          <col class="col-type" />
+          <col class="col-title" />
+          <col class="col-actions" />
+        </colgroup>
         <thead>
         <tr>
           <th>ID</th>
@@ -18,7 +24,7 @@
         <tr v-for="cat in categories" :key="cat.id">
           <td>{{ cat.id }}</td>
           <td>{{ cat.type }}</td>
-          <td>{{ cat.title }}</td>
+          <td class="cell-wrap">{{ cat.title }}</td>
           <td>
             <div class="actions">
               <button class="btn-edit" @click="editCategory(cat)">Изменить</button>
@@ -155,7 +161,12 @@ async function deleteCategory(id) {
 
 .table-container { background: #ffffff; border-radius: 1.25vw; margin-bottom: 3.125vw; overflow: hidden; }
 
-.admin-table { width: 100%; border-collapse: collapse; }
+.admin-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.admin-table .col-id { width: 6%; }
+.admin-table .col-type { width: 14%; }
+.admin-table .col-title { width: auto; }
+.admin-table .col-actions { width: 18.5vw; }
+.cell-wrap { overflow-wrap: anywhere; word-break: break-word; }
 .admin-table thead { background: #f7f7f7; }
 .admin-table th { padding: 1.0417vw; text-align: left; font-weight: 400; color: #1f2937; font-size: 1.0417vw; border-bottom: 0.1042vw solid #e5e7eb; }
 .admin-table td { padding: 1.0417vw; color: #1f2937; font-size: 1.0417vw; border-bottom: 0.0521vw solid #e5e7eb; }
