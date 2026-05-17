@@ -172,7 +172,7 @@ function renderChart() {
 
   ctx.clearRect(0, 0, width, height);
 
-  const maxVal = Math.max(...data.map(d => d.usage_percentage), 1);
+  const maxVal = Math.max(...data.map(d => Number(d.usage_percentage) || 0), 1);
   const barWidth = Math.min(chartWidth / data.length * 0.6, 60);
   const gap = (chartWidth - barWidth * data.length) / (data.length + 1);
 
@@ -211,7 +211,7 @@ function renderChart() {
     ctx.fillStyle = '#1f2937';
     ctx.font = 'bold 12px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(`${item.usage_percentage.toFixed(1)}%`, x + barWidth / 2, y - 8);
+    ctx.fillText(`${Number(item.usage_percentage).toFixed(1)}%`, x + barWidth / 2, y - 8);
 
     ctx.fillStyle = '#1f2937';
     ctx.font = '11px Arial';
