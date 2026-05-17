@@ -94,14 +94,15 @@
         <AdminUsers v-if="currentPage === 'users'" />
       </main>
     </div>
-  </div>
-  <div v-if="showLogoutConfirm" class="auth-overlay" @click.self="closeLogoutModal">
-    <div class="auth-modal" @click.stop>
-      <h3 class="auth-title">Подтверждение выхода</h3>
-      <div class="auth-form">
-        <p class="logout-confirm-text">Вы уверены что хотите выйти из аккаунта?</p>
-        <button class="auth-btn" @click="handleLogout">Выйти</button>
-        <button class="auth-link-like" @click="closeLogoutModal">Отмена</button>
+
+    <div v-if="showLogoutConfirm" class="auth-overlay" @click.self="closeLogoutModal">
+      <div class="auth-modal" @click.stop>
+        <h3 class="auth-title">Подтверждение выхода</h3>
+        <div class="auth-form">
+          <p class="logout-confirm-text">Вы уверены что хотите выйти из аккаунта?</p>
+          <button class="auth-btn" @click="handleLogout">Выйти</button>
+          <button class="auth-link-like" @click="closeLogoutModal">Отмена</button>
+        </div>
       </div>
     </div>
   </div>
@@ -341,6 +342,17 @@ onMounted(async () => {
 .setting-text { font-size: 1.0417vw; color: #1f2937; margin: 0; line-height: 1.4; padding: 0.3906vw 0; }
 .setting-text-empty { font-size: 1.0417vw; color: #9ca3af; margin: 0; line-height: 1.4; font-style: italic; }
 
+.auth-overlay { position: fixed; inset: 0; background: rgba(31,41,55,0.55); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 10000; }
+.auth-modal { background: #ffffff; border-radius: 1.25vw; padding: 2.0833vw; width: 90%; max-width: 26vw; box-shadow: 0 1.0417vw 3.125vw rgba(0,0,0,0.25); animation: modalSlideIn 0.2s ease; }
+.auth-title { color: #1f2937; font-size: 1.6667vw; font-family: inherit; font-weight: 600; margin: 0 0 1.25vw 0; text-align: center; }
+.auth-form { display: flex; flex-direction: column; gap: 0.8333vw; }
+.auth-btn { background: #1f2937; color: #ffffff; border: none; border-radius: 0.5vw; padding: 0.8333vw; font-size: 1vw; font-family: inherit; font-weight: 500; cursor: pointer; transition: background 0.15s ease; }
+.auth-btn:hover { background: #374151; }
+.auth-link-like { background: transparent; color: #6b7280; border: none; padding: 0.5vw; font-size: 0.9375vw; font-family: inherit; cursor: pointer; text-align: center; transition: color 0.15s ease; }
+.auth-link-like:hover { color: #1f2937; }
+.logout-confirm-text { color: #1f2937; font-size: 1.25vw; font-family: inherit; font-weight: 400; margin: 0 0 1vw 0; text-align: center; line-height: 1.4; }
+@keyframes modalSlideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
 @media (max-width: 1200px) {
   .hero-row { padding: 10px 30px; }
   .logo-btn img { width: 36px; height: 48px; }
@@ -367,6 +379,12 @@ onMounted(async () => {
   .settings-block-title { font-size: 20px; margin-bottom: 16px; }
   .setting-text { font-size: 16px; padding: 6px 0; }
   .setting-text-empty { font-size: 16px; }
+  .auth-modal { max-width: 360px; border-radius: 16px; padding: 24px; }
+  .auth-title { font-size: 22px; margin-bottom: 16px; }
+  .auth-form { gap: 12px; }
+  .auth-btn { border-radius: 8px; padding: 12px; font-size: 15px; }
+  .auth-link-like { padding: 8px; font-size: 14px; }
+  .logout-confirm-text { font-size: 16px; margin-bottom: 12px; }
 }
 
 @media (max-width: 768px) {
@@ -397,5 +415,11 @@ onMounted(async () => {
   .settings-block-title { font-size: 18px; margin-bottom: 12px; }
   .setting-text { font-size: 14px; padding: 4px 0; }
   .setting-text-empty { font-size: 14px; }
+  .auth-modal { max-width: 320px; border-radius: 12px; padding: 20px; }
+  .auth-title { font-size: 18px; margin-bottom: 12px; }
+  .auth-form { gap: 10px; }
+  .auth-btn { border-radius: 6px; padding: 10px; font-size: 14px; }
+  .auth-link-like { padding: 6px; font-size: 13px; }
+  .logout-confirm-text { font-size: 14px; margin-bottom: 10px; }
 }
 </style>
