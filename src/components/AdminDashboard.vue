@@ -280,6 +280,8 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+* { box-sizing: border-box; }
+
 .hero {
   background: #1f2937; color: #fff;
   border-bottom-left-radius: 1.25vw; border-bottom-right-radius: 1.25vw;
