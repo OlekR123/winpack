@@ -164,9 +164,10 @@ router.get('/user-script/:userId', requireAuth, requireOwnership, async (req, re
             '$null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")',
             ''
         ].join('\n');
-        const fullScript = `${header}${scripts}${footer}`;
+        const bom = '\uFEFF';
+        const fullScript = bom + `${header}${scripts}${footer}`;
 
-        res.setHeader('Content-Type', 'application/octet-stream; charset=utf-8');
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
         res.setHeader('Content-Disposition', 'attachment; filename="WinPackConfig.ps1"');
         res.end(Buffer.from(fullScript, 'utf8'));
     } catch (e) {

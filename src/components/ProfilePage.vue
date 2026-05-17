@@ -222,7 +222,12 @@
             <code class="guide-code">cd $env:USERPROFILE\Downloads</code>
           </div>
           <div class="guide-step">
-            <p class="guide-step-label">Шаг 3: Запустите скрипт</p>
+            <p class="guide-step-label">Шаг 3: Разрешите выполнение скриптов (если требуется)</p>
+            <p class="guide-step-desc">Выполните команду:</p>
+            <code class="guide-code">Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass</code>
+          </div>
+          <div class="guide-step">
+            <p class="guide-step-label">Шаг 4: Запустите скрипт</p>
             <p class="guide-step-desc">Выполните команду:</p>
             <code class="guide-code">.\WinPackConfig.ps1</code>
           </div>
