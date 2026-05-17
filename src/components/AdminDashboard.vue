@@ -13,7 +13,7 @@
 
           <div v-if="profileMenuOpen" class="profile-menu" @click.stop>
             <div class="profile-menu-header">{{ authStore.userEmail }}</div>
-            <button class="profile-menu-logout" @click="handleLogout">
+            <button class="profile-menu-logout" @click="confirmLogout">
               <img :src="img.logout" alt="" class="profile-menu-icon" />
               Выход
             </button>
@@ -95,6 +95,16 @@
       </main>
     </div>
   </div>
+  <div v-if="showLogoutConfirm" class="auth-overlay" @click.self="closeLogoutModal">
+    <div class="auth-modal" @click.stop>
+      <h3 class="auth-title">Подтверждение выхода</h3>
+      <div class="auth-form">
+        <p class="logout-confirm-text">Вы уверены что хотите выйти из аккаунта?</p>
+        <button class="auth-btn" @click="handleLogout">Выйти</button>
+        <button class="auth-link-like" @click="closeLogoutModal">Отмена</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -112,7 +122,7 @@ const authStore = useAuthStore();
 const isAdmin = ref(false);
 const currentPage = ref('dashboard');
 const profileMenuOpen = ref(false);
-
+const showLogoutConfirm = ref(false);
 const settingsStats = ref([]);
 const popularSettings = ref([]);
 const recommendedForRemoval = ref([]);
@@ -127,8 +137,20 @@ function toggleProfileMenu() {
   profileMenuOpen.value = !profileMenuOpen.value;
 }
 
+function confirmLogout() {
+  profileMenuOpen.value = false;
+  showLogoutConfirm.value = true;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeLogoutModal() {
+  showLogoutConfirm.value = false;
+  document.body.style.overflow = 'auto';
+}
+
 function handleLogout() {
   authStore.logout();
+  document.body.style.overflow = 'auto';
   window.location.href = '/';
 }
 
