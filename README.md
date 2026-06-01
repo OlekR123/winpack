@@ -1,38 +1,109 @@
 # WinPack
 
-This template should help get you started developing with Vue 3 in Vite.
+Веб-приложение для персонализированной установки программного обеспечения и
+конфигурирования операционной системы Windows. Пользователь выбирает нужные
+программы и системные настройки, а приложение формирует готовый к исполнению
+PowerShell-скрипт. Установка программ выполняется через менеджер пакетов Winget.
 
-## Recommended IDE Setup
+## Возможности
 
-[VS Code](https://code.visualstudio.com/) + [Vue (Official)](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+- Каталог программ с разбивкой по категориям и поиском пакетов через Winget.
+- Каталог системных настроек Windows с генерацией PowerShell-команд.
+- Регистрация с подтверждением электронной почты по одноразовому коду.
+- Сохранение персональных конфигураций для каждого пользователя.
+- Генерация двух скриптов: установки программ (`WinPackInstaller.ps1`) и
+  применения настроек (`WinPackConfig.ps1`).
+- Административная панель: управление каталогами, пользователями и просмотр
+  статистики использования настроек.
 
-## Recommended Browser Setup
+## Технологии
 
-- Chromium-based browsers (Chrome, Edge, Brave, etc.):
-  - [Vue.js devtools](https://chromewebstore.google.com/detail/vuejs-devtools/nhdogjmejiglipccpnnnanhbledajbpd) 
-  - [Turn on Custom Object Formatter in Chrome DevTools](http://bit.ly/object-formatters)
-- Firefox:
-  - [Vue.js devtools](https://addons.mozilla.org/en-US/firefox/addon/vue-js-devtools/)
-  - [Turn on Custom Object Formatter in Firefox DevTools](https://fxdx.dev/firefox-devtools-custom-object-formatters/)
+- **Клиент:** Vue 3, Vue Router, Pinia, Vite.
+- **Сервер:** Node.js, Express.
+- **База данных:** PostgreSQL (размещена на платформе Supabase); бизнес-логика
+  вынесена в хранимые функции.
+- **Авторизация:** JWT, хеширование паролей bcrypt.
+- **Внешние сервисы:** Winget (поиск пакетов), Resend (отправка писем с кодом).
 
-## Customize configuration
+## Требования
 
-See [Vite Configuration Reference](https://vite.dev/config/).
+- Node.js версии 20.19 или выше (рекомендуется 22 LTS).
+- Доступ к базе данных PostgreSQL.
 
-## Project Setup
+## Установка
 
 ```sh
 npm install
 ```
 
-### Compile and Hot-Reload for Development
+## Переменные окружения
 
-```sh
-npm run dev
+Создайте в корне проекта файл `.env` и заполните его. Параметры подключения к
+базе данных:
+
+```
+PGHOST=адрес_сервера_базы_данных
+PGPORT=5432
+PGDATABASE=имя_базы_данных
+PGUSER=имя_пользователя
+PGPASSWORD=пароль
 ```
 
-### Compile and Minify for Production
+Параметры приложения и внешних сервисов:
+
+```
+PORT=3000
+JWT_SECRET=секретный_ключ_для_подписи_токенов
+RESEND_API_KEY=ключ_сервиса_Resend
+FROM_EMAIL=адрес_отправителя_писем
+NODE_ENV=development
+```
+
+## Запуск
+
+Запуск клиента и сервера одновременно (режим разработки):
 
 ```sh
-npm run build
+npm run dev:all
+```
+
+Запуск по отдельности:
+
+```sh
+npm run dev      # только клиент (Vite), http://localhost:5173
+npm run dev:api  # только сервер (API), http://localhost:3000
+```
+
+В режиме разработки клиент обращается к серверу по адресу `http://localhost:3000`
+(настроено через прокси в `vite.config.js`).
+
+## Сборка и запуск в production
+
+```sh
+npm run build    # сборка клиентской части
+npm run start    # запуск сервера
+```
+
+## Тестирование
+
+```sh
+npm run test       # однократный прогон тестов
+npm run test:watch # запуск тестов в режиме наблюдения
+```
+
+## Структура проекта
+
+```
+api/                серверная часть (Express)
+  routers/          маршруты: auth, home, admin, winget
+  middleware/       проверка авторизации и роли
+  utils/            работа с кодами подтверждения и отправка писем
+  db.js             подключение к PostgreSQL
+  server.js         точка входа сервера
+src/                клиентская часть (Vue)
+  components/       компоненты страниц и админ-панели
+  composables/      переиспользуемая логика (настройки, программы)
+  stores/           хранилище состояния (Pinia)
+  api/              обращения к серверному API
+tests/              модульные тесты
 ```
