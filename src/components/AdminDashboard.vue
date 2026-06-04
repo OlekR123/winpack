@@ -109,7 +109,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue';
 import { images as img } from '../assets/images.js';
 import { useAuthStore } from '../stores/auth.js';
 import * as adminApi from '../api/admin.js';
@@ -170,7 +170,7 @@ async function loadDashboardData() {
     recommendedForRemoval.value = removal;
 
     if (document.fonts && document.fonts.load) {
-      try { await document.fonts.load(`bold 12px ${CHART_FONT_FAMILY}`); } catch (e) {}
+      try { await document.fonts.load(`bold 12px ${CHART_FONT_FAMILY}`); } catch (e) { /* draw anyway */ }
     }
 
     await nextTick();
@@ -181,6 +181,10 @@ async function loadDashboardData() {
 }
 
 function renderChart() {
+  requestAnimationFrame(drawChart);
+}
+
+function drawChart() {
   const canvas = chartCanvas.value;
   if (!canvas || settingsStats.value.length === 0) return;
 
@@ -189,9 +193,11 @@ function renderChart() {
 
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-  ctx.scale(dpr, dpr);
+  if (rect.width === 0) return;
+
+  canvas.width = Math.round(rect.width * dpr);
+  canvas.height = Math.round(rect.height * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   const width = rect.width;
   const height = rect.height;
@@ -282,6 +288,12 @@ onMounted(async () => {
       profileMenuOpen.value = false;
     }
   });
+
+  window.addEventListener('resize', renderChart);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('resize', renderChart);
 });
 </script>
 
