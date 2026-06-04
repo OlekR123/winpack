@@ -130,6 +130,8 @@ const recommendedForRemoval = ref([]);
 
 const chartCanvas = ref(null);
 
+const CHART_FONT_FAMILY = '"Zen Kurenaido"';
+
 function reloadPage() {
   window.location.reload();
 }
@@ -166,6 +168,10 @@ async function loadDashboardData() {
     settingsStats.value = stats;
     popularSettings.value = popular;
     recommendedForRemoval.value = removal;
+
+    if (document.fonts && document.fonts.load) {
+      try { await document.fonts.load(`bold 12px ${CHART_FONT_FAMILY}`); } catch (e) {}
+    }
 
     await nextTick();
     renderChart();
@@ -209,7 +215,7 @@ function renderChart() {
     ctx.stroke();
 
     ctx.fillStyle = '#9ca3af';
-    ctx.font = '12px Arial';
+    ctx.font = `bold 12px ${CHART_FONT_FAMILY}`;
     ctx.textAlign = 'right';
     ctx.fillText(`${(maxVal * i / 5).toFixed(0)}%`, padding.left - 10, y + 4);
   }
@@ -232,12 +238,12 @@ function renderChart() {
     ctx.fill();
 
     ctx.fillStyle = '#1f2937';
-    ctx.font = 'bold 12px Arial';
+    ctx.font = `bold 12px ${CHART_FONT_FAMILY}`;
     ctx.textAlign = 'center';
     ctx.fillText(`${Number(item.usage_percentage).toFixed(1)}%`, x + barWidth / 2, y - 8);
 
     ctx.fillStyle = '#1f2937';
-    ctx.font = '11px Arial';
+    ctx.font = `bold 11px ${CHART_FONT_FAMILY}`;
     ctx.textAlign = 'center';
 
     const label = item.category_title;
