@@ -1,5 +1,6 @@
 import { ref, reactive } from 'vue';
 import { fetchProgramCategories, fetchProgramsByCategory, fetchProgramsScript } from '../api/home.js';
+import { downloadBlob } from '../utils/download.js';
 
 export function usePrograms() {
     const categories = ref([]);
@@ -13,11 +14,16 @@ export function usePrograms() {
         try {
             categories.value = await fetchProgramCategories();
 
-            for (const cat of categories.value) {
-                categoryPrograms[cat.id] = await fetchProgramsByCategory(cat.id);
+            // Грузим программы по всем категориям параллельно, а не водопадом.
+            const lists = await Promise.all(
+                categories.value.map(cat => fetchProgramsByCategory(cat.id))
+            );
+
+            categories.value.forEach((cat, i) => {
+                categoryPrograms[cat.id] = lists[i];
                 categoryOffsets[cat.id] = 0;
                 categoryIndexes[cat.id] = 0;
-            }
+            });
         } catch (e) {
             categories.value = [];
         }
@@ -112,14 +118,7 @@ export function usePrograms() {
             }
 
             const blob = await res.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'WinPackInstaller.ps1';
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+            downloadBlob(blob, 'WinPackInstaller.ps1');
 
             openProgramsGuide();
         } catch (e) {

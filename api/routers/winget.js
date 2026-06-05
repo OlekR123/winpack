@@ -4,8 +4,7 @@ import { requireAuth, requireAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
-// Поиск программ в Winget
-router.get('/search', async (req, res) => {
+router.get('/search', requireAuth, requireAdmin, async (req, res) => {
     const query = req.query.q;
 
     if (!query || query.trim().length < 2) {
@@ -46,7 +45,6 @@ router.get('/search', async (req, res) => {
     }
 });
 
-// Детальная информация о программе
 router.get('/info/:wingetId', requireAuth, requireAdmin, async (req, res, next) => {
     try {
         const wingetId = req.params.wingetId;

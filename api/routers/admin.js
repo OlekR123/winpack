@@ -5,9 +5,17 @@ import { requireAuth, requireAdmin } from '../middleware/auth.js';
 
 const router = Router();
 
-// ========================================
-// Категории
-// ========================================
+const BCRYPT_COST = 12;
+
+function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+function isValidPassword(password) {
+    if (!password || password.length < 8) return false;
+    // bcrypt молча обрезает пароль на 72 байтах — длиннее не принимаем.
+    if (Buffer.byteLength(password, 'utf8') > 72) return false;
+    return /[a-z]/.test(password) && /[A-Z]/.test(password) && /[0-9]/.test(password);
+}
 
 router.get('/categories', requireAuth, requireAdmin, async (req, res, next) => {
     try {
@@ -71,10 +79,6 @@ router.delete('/categories/:id', requireAuth, requireAdmin, async (req, res, nex
         next(e);
     }
 });
-
-// ========================================
-// Программы
-// ========================================
 
 router.get('/programs', requireAuth, requireAdmin, async (req, res, next) => {
     try {
@@ -150,10 +154,6 @@ router.delete('/programs/:id', requireAuth, requireAdmin, async (req, res, next)
     }
 });
 
-// ========================================
-// Настройки
-// ========================================
-
 router.get('/settings', requireAuth, requireAdmin, async (req, res, next) => {
     try {
         const { rows } = await query('SELECT * FROM get_all_settings()');
@@ -223,10 +223,6 @@ router.delete('/settings/:id', requireAuth, requireAdmin, async (req, res, next)
     }
 });
 
-// ========================================
-// Пользователи
-// ========================================
-
 router.get('/users', requireAuth, requireAdmin, async (req, res, next) => {
     try {
         const { rows } = await query('SELECT * FROM get_all_users()');
@@ -238,15 +234,26 @@ router.get('/users', requireAuth, requireAdmin, async (req, res, next) => {
 
 router.post('/users', requireAuth, requireAdmin, async (req, res, next) => {
     const { email, password, role } = req.body;
+
     if (!email || !password) {
         return res.status(400).json({ error: 'email и password обязательны' });
     }
+    if (!isValidEmail(email)) {
+        return res.status(400).json({ error: 'Неверный формат email' });
+    }
+    if (!isValidPassword(password)) {
+        return res.status(400).json({ error: 'Пароль: 8+ символов, a-z, A-Z, 0-9' });
+    }
+    const roleName = role || 'user';
+    if (roleName !== 'admin' && roleName !== 'user') {
+        return res.status(400).json({ error: 'role должна быть admin или user' });
+    }
 
     try {
-        const passwordHash = await bcrypt.hash(password, 10);
+        const passwordHash = await bcrypt.hash(password, BCRYPT_COST);
         const { rows } = await query(
             'SELECT * FROM create_user_admin($1, $2, $3)',
-            [email, passwordHash, role || 'user']
+            [email, passwordHash, roleName]
         );
         if (rows.length === 0) {
             return res.status(500).json({ error: 'Ошибка создания пользователя' });
@@ -263,8 +270,17 @@ router.post('/users', requireAuth, requireAdmin, async (req, res, next) => {
 router.put('/users/:id/role', requireAuth, requireAdmin, async (req, res, next) => {
     const id = parseInt(req.params.id, 10);
     const { role } = req.body;
+
+    if (Number.isNaN(id)) {
+        return res.status(400).json({ error: 'Некорректный ID пользователя' });
+    }
     if (!role || (role !== 'admin' && role !== 'user')) {
         return res.status(400).json({ error: 'role должна быть admin или user' });
+    }
+
+    // Свою роль менять нельзя — иначе можно случайно разжаловать себя.
+    if (id === req.user.id) {
+        return res.status(403).json({ error: 'Нельзя изменить собственную роль' });
     }
 
     try {
@@ -280,6 +296,16 @@ router.put('/users/:id/role', requireAuth, requireAdmin, async (req, res, next) 
 
 router.delete('/users/:id', requireAuth, requireAdmin, async (req, res, next) => {
     const id = parseInt(req.params.id, 10);
+
+    if (Number.isNaN(id)) {
+        return res.status(400).json({ error: 'Некорректный ID пользователя' });
+    }
+
+    // Себя удалить нельзя — иначе можно потерять доступ к админке.
+    if (id === req.user.id) {
+        return res.status(403).json({ error: 'Нельзя удалить собственный аккаунт' });
+    }
+
     try {
         const { rows } = await query('SELECT delete_user_admin($1)', [id]);
         if (rows.length === 0 || rows[0].delete_user_admin === null) {
@@ -290,10 +316,6 @@ router.delete('/users/:id', requireAuth, requireAdmin, async (req, res, next) =>
         next(e);
     }
 });
-
-// ========================================
-// Статистика
-// ========================================
 
 router.get('/dashboard-overview', requireAuth, requireAdmin, async (req, res, next) => {
     try {

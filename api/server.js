@@ -15,23 +15,18 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.join(__dirname, '.env') });
-dotenv.config({ path: './api/.env' });
 
 const app = express();
-app.set('trust proxy', true);
+// Доверяем ровно одному прокси (Render): иначе X-Forwarded-For можно подделать и обойти rate-limit.
+app.set('trust proxy', 1);
 
 const PORT = Number(process.env.PORT ?? 3000);
 const distPath = path.join(__dirname, '..', 'dist');
 
-// ПОРЯДОК MIDDLEWARE ВАЖЕН
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
-// 1. Логирование — самое первое, чтобы видеть ВСЕ запросы
-app.use(morgan('dev'));
-
-// 2. Body parser — ГЛОБАЛЬНО, до роутов
 app.use(express.json({ limit: '10mb' }));
 
-// 3. CORS — для /api
 const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:3000',
@@ -52,20 +47,17 @@ app.use('/api', cors({
     credentials: true
 }));
 
-// 4. Helmet — после CORS
 app.use('/api', helmet({
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: false
 }));
 
-// 5. API роуты — ДО статики, чтобы /api точно обрабатывался Express
 app.use('/api/home', homeRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRouter);
 app.use('/api/winget', wingetRouter);
 
-// 6. Health check
 app.get('/api/health', (_req, res) => res.json({
     ok: true,
     version: '3.0',
@@ -77,15 +69,12 @@ app.get('/api/health', (_req, res) => res.json({
     }
 }));
 
-// 7. Статика фронтенда — ПОСЛЕ API роутов
 app.use(express.static(distPath));
 
-// 8. SPA fallback — самое последнее
 app.get('/{*path}', (_req, res) => {
     res.sendFile(path.join(distPath, 'index.html'));
 });
 
-// 9. Обработка ошибок
 app.use((err, _req, res, _next) => {
     console.error('Server error:', err.message);
     res.status(500).json({ error: 'Internal server error' });

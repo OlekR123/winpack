@@ -55,7 +55,13 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
     const token = localStorage.getItem('token');
     const userInfo = localStorage.getItem('userInfo');
-    const user = userInfo ? JSON.parse(userInfo) : null;
+    let user = null;
+    try {
+        user = userInfo ? JSON.parse(userInfo) : null;
+    } catch (e) {
+        // битый localStorage не должен ронять навигацию
+        user = null;
+    }
 
     if (to.meta.requiresAuth && !token) {
         return next('/');

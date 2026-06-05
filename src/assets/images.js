@@ -4,10 +4,8 @@ export const images = {
     logout: 'https://i.postimg.cc/k5KPgby3/Exit.png',
     decorHeroLeftTop: 'https://i.postimg.cc/YS52X7bZ/left-dots-header.png',
     decorHeroRightBottom: 'https://i.postimg.cc/mgqTDRf7/right_dots_header.png',
-    warningDotsLeft: 'https://i.postimg.cc/brKRrsgY/left-dots-wor.png',
-    warningDotsRight: 'https://i.postimg.cc/wB0cJW2y/right-dots-wor.png',
-    settingsDotsLeft: 'https://i.postimg.cc/G9wkr632/left-dots-wor-set.png',
-    settingsDotsRight: 'https://i.postimg.cc/vmH2pxSp/right-dots-wor-set.png',
+    warningDotsLeft: 'https://i.postimg.cc/G9wkr632/left-dots-wor-set.png',
+    warningDotsRight: 'https://i.postimg.cc/vmH2pxSp/right-dots-wor-set.png',
     qrcode: 'https://i.postimg.cc/J0JpbNG0/qrcode.png',
 
     stats: 'https://i.postimg.cc/vTppy86x/stats.png',

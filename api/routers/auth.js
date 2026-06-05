@@ -5,6 +5,7 @@ import jwt from 'jsonwebtoken';
 import { sendVerificationCode } from '../utils/mailer.js';
 import { saveCode, verifyCode } from '../utils/codeStore.js';
 import rateLimit from 'express-rate-limit';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -14,7 +15,10 @@ export function isValidEmail(email) {
 }
 
 export function isValidPassword(password) {
-    return password?.length >= 8 && /[a-z]/.test(password) && /[A-Z]/.test(password) && /[0-9]/.test(password);
+    if (!password || password.length < 8) return false;
+    // bcrypt молча обрезает пароль на 72 байтах — длиннее не принимаем.
+    if (Buffer.byteLength(password, 'utf8') > 72) return false;
+    return /[a-z]/.test(password) && /[A-Z]/.test(password) && /[0-9]/.test(password);
 }
 
 function signToken(payload) {
@@ -26,8 +30,7 @@ const sendCodeLimiter = rateLimit({
     max: 5,
     message: { error: 'Слишком много попыток' },
     standardHeaders: true,
-    legacyHeaders: false,
-    validate: { trustProxy: false }
+    legacyHeaders: false
 });
 
 const loginLimiter = rateLimit({
@@ -35,64 +38,57 @@ const loginLimiter = rateLimit({
     max: 10,
     message: { error: 'Слишком много попыток входа' },
     standardHeaders: true,
-    legacyHeaders: false,
-    validate: { trustProxy: false }
+    legacyHeaders: false
+});
+
+// Лимит на регистрацию: вместе со счётчиком в codeStore не даёт перебирать код.
+const registerLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: { error: 'Слишком много попыток' },
+    standardHeaders: true,
+    legacyHeaders: false
 });
 
 router.post('/send-code', sendCodeLimiter, async (req, res) => {
-    console.log('[send-code] === START ===');
-    console.log('[send-code] IP:', req.ip);
-    console.log('[send-code] X-Forwarded-For:', req.headers['x-forwarded-for']);
-    console.log('[send-code] Content-Type:', req.headers['content-type']);
-    console.log('[send-code] Body:', JSON.stringify(req.body));
-
+    // ВАЖНО: не логируем req.body — там пароль в открытом виде.
     try {
         const { email, password, password2 } = req.body;
         if (!email) {
-            console.log('[send-code] FAIL: email отсутствует');
             return res.status(400).json({ error: 'Email обязателен' });
         }
         if (!isValidEmail(email)) {
-            console.log('[send-code] FAIL: невалидный email:', email);
             return res.status(400).json({ error: 'Неверный формат email' });
         }
         if (!password || !password2) {
-            console.log('[send-code] FAIL: пароли отсутствуют');
             return res.status(400).json({ error: 'Пароли обязательны' });
         }
         if (password !== password2) {
-            console.log('[send-code] FAIL: пароли не совпадают');
             return res.status(400).json({ error: 'Пароли не совпадают' });
         }
         if (!isValidPassword(password)) {
-            console.log('[send-code] FAIL: слабый пароль');
             return res.status(400).json({ error: 'Пароль: 8+ символов, a-z, A-Z, 0-9' });
         }
 
-        console.log('[send-code] Проверяем email в БД...');
         const { rows } = await query('SELECT * FROM user_by_email($1)', [email]);
 
         if (rows.length > 0) {
-            console.log('[send-code] FAIL: email уже зарегистрирован');
             return res.status(409).json({ error: 'Email уже зарегистрирован' });
         }
 
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const code = crypto.randomInt(100000, 1000000).toString();
         saveCode(email, code);
 
-        console.log('[send-code] Отправляем письмо на:', email);
         await sendVerificationCode(email, code);
 
-        console.log('[send-code] SUCCESS: код отправлен');
         res.json({ ok: true, message: 'Код отправлен' });
     } catch (e) {
-        console.error('[send-code] ERROR:', e.message);
-        console.error('[send-code] STACK:', e.stack);
+        console.error('[send-code] error:', e.message);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
-router.post('/register', async (req, res) => {
+router.post('/register', registerLimiter, async (req, res) => {
     try {
         const { email, password, password2, code } = req.body;
         if (!email || !password || !password2 || !code) return res.status(400).json({ error: 'Все поля обязательны' });
@@ -170,49 +166,27 @@ router.post('/login', loginLimiter, async (req, res) => {
     }
 });
 
-router.get('/profile', async (req, res) => {
+router.get('/profile', requireAuth, async (req, res) => {
     try {
-        const token = req.headers.authorization?.split(' ')[1];
-        if (!token) return res.status(401).json({ error: 'Токен отсутствует' });
-
-        const payload = jwt.verify(token, process.env.JWT_SECRET);
-        const { rows } = await query('SELECT * FROM user_by_email($1)', [payload.email]);
-
+        const { rows } = await query('SELECT * FROM user_by_email($1)', [req.user.email]);
         if (rows.length === 0) {
             return res.status(404).json({ error: 'Пользователь не найден' });
         }
-
         const user = rows[0];
-
         res.json({
-            user: {
-                id: user.id,
-                email: user.email,
-                role_name: user.role_name
-            }
+            user: { id: user.id, email: user.email, role_name: user.role_name }
         });
     } catch (e) {
-        if (e.name === 'JsonWebTokenError' || e.name === 'TokenExpiredError') {
-            return res.status(401).json({ error: 'Неверный токен' });
-        }
+        console.error('/profile error:', e.message);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
-router.get('/check-admin', async (req, res) => {
+router.get('/check-admin', requireAuth, async (req, res) => {
     try {
-        const token = req.headers.authorization?.split(' ')[1];
-        if (!token) return res.status(401).json({ isAdmin: false });
-
-        const payload = jwt.verify(token, process.env.JWT_SECRET);
-        const { rows } = await query('SELECT role_name FROM user_by_email($1)', [payload.email]);
-
-        if (rows.length === 0) {
-            return res.json({ isAdmin: false });
-        }
-
-        res.json({ isAdmin: rows[0].role_name === 'admin' });
-    } catch (error) {
+        const { rows } = await query('SELECT role_name FROM user_by_email($1)', [req.user.email]);
+        res.json({ isAdmin: rows.length > 0 && rows[0].role_name === 'admin' });
+    } catch (e) {
         res.json({ isAdmin: false });
     }
 });

@@ -1,10 +1,19 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { query } from '../db.js';
 import { requireAuth, requireOwnership } from '../middleware/auth.js';
 
 const router = Router();
 
-// Программы по категории
+// Публичная ручка — лимитируем частоту, чтобы её нельзя было использовать для нагрузки на БД.
+const scriptLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 30,
+    message: { error: 'Слишком много запросов, попробуйте позже' },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
 router.get('/programs', async (req, res) => {
     try {
         const categoryId = parseInt(String(req.query.categoryId), 10);
@@ -24,7 +33,6 @@ router.get('/programs', async (req, res) => {
     }
 });
 
-// Категории программ
 router.get('/program-categories', async (req, res) => {
     try {
         const { rows } = await query('SELECT * FROM program_categories()');
@@ -35,7 +43,6 @@ router.get('/program-categories', async (req, res) => {
     }
 });
 
-// Категории настроек
 router.get('/setting-categories', async (req, res) => {
     try {
         const { rows } = await query('SELECT * FROM setting_categories()');
@@ -46,7 +53,6 @@ router.get('/setting-categories', async (req, res) => {
     }
 });
 
-// Настройки по категории
 router.get('/settings', async (req, res) => {
     try {
         const categoryId = parseInt(String(req.query.categoryId), 10);
@@ -66,7 +72,6 @@ router.get('/settings', async (req, res) => {
     }
 });
 
-// Настройки пользователя
 router.get('/user-settings/:userId', requireAuth, requireOwnership, async (req, res) => {
     try {
         const userId = parseInt(String(req.params.userId), 10);
@@ -78,7 +83,6 @@ router.get('/user-settings/:userId', requireAuth, requireOwnership, async (req, 
     }
 });
 
-// Сохранение настроек пользователя
 router.post('/save-user-settings/:userId', requireAuth, requireOwnership, async (req, res) => {
     try {
         const userId = parseInt(String(req.params.userId), 10);
@@ -100,7 +104,6 @@ router.post('/save-user-settings/:userId', requireAuth, requireOwnership, async 
     }
 });
 
-// Программы пользователя
 router.get('/user-programs/:userId', requireAuth, requireOwnership, async (req, res) => {
     try {
         const userId = parseInt(String(req.params.userId), 10);
@@ -112,7 +115,6 @@ router.get('/user-programs/:userId', requireAuth, requireOwnership, async (req, 
     }
 });
 
-// Сохранение программ пользователя
 router.post('/save-user-programs/:userId', requireAuth, requireOwnership, async (req, res) => {
     try {
         const userId = parseInt(String(req.params.userId), 10);
@@ -134,7 +136,6 @@ router.post('/save-user-programs/:userId', requireAuth, requireOwnership, async 
     }
 });
 
-// Скрипт настроек пользователя
 router.get('/user-script/:userId', requireAuth, requireOwnership, async (req, res) => {
     try {
         const userId = parseInt(String(req.params.userId), 10);
@@ -176,8 +177,7 @@ router.get('/user-script/:userId', requireAuth, requireOwnership, async (req, re
     }
 });
 
-// Скрипт установки программ
-router.post('/programs-script', async (req, res) => {
+router.post('/programs-script', scriptLimiter, async (req, res) => {
     try {
         const { programIds } = req.body || {};
 

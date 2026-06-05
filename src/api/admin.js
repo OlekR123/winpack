@@ -17,7 +17,6 @@ async function request(url, options = {}) {
     return res;
 }
 
-// Категории
 export async function fetchCategories() {
     const res = await request('/api/admin/categories');
     return res.json();
@@ -44,7 +43,6 @@ export async function deleteCategory(id) {
     return res;
 }
 
-// Программы
 export async function fetchPrograms() {
     const res = await request('/api/admin/programs');
     return res.json();
@@ -71,7 +69,6 @@ export async function deleteProgram(id) {
     return res;
 }
 
-// Настройки
 export async function fetchSettings() {
     const res = await request('/api/admin/settings');
     return res.json();
@@ -98,7 +95,6 @@ export async function deleteSetting(id) {
     return res;
 }
 
-// Пользователи
 export async function fetchUsers() {
     const res = await request('/api/admin/users');
     return res.json();
@@ -125,7 +121,6 @@ export async function deleteUser(id) {
     return res;
 }
 
-// Статистика
 export async function fetchDashboardOverview() {
     const res = await request('/api/admin/dashboard-overview');
     return res.json();
@@ -146,8 +141,7 @@ export async function fetchRecommendedRemoval(limit = 10) {
     return res.json();
 }
 
-// Winget
 export async function searchWinget(query) {
-    const res = await fetch(`/api/winget/search?q=${encodeURIComponent(query)}`);
+    const res = await request(`/api/winget/search?q=${encodeURIComponent(query)}`);
     return res.json();
 }

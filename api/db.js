@@ -1,7 +1,11 @@
 import pg from 'pg';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-dotenv.config();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const dbConfig = {
     host: process.env.PGHOST,
@@ -16,22 +20,23 @@ const dbConfig = {
     statement_timeout: 10000,
 };
 
+console.log(`[db] per-request client -> ${dbConfig.host}:${dbConfig.port}`);
+
 export async function query(text, params) {
     const client = new pg.Client(dbConfig);
 
     try {
         await client.connect();
-        const result = await client.query(text, params);
-        return result;
+        return await client.query(text, params);
     } catch (err) {
-        console.error('Database query error:', err.message);
+        // Нарушения ограничений (класс 23xxx) — ожидаемые: роут вернёт понятный 4xx,
+        // поэтому логируем только действительно неожиданные сбои.
+        if (!String(err.code || '').startsWith('23')) {
+            console.error('Database query error:', err.message);
+        }
         throw err;
     } finally {
-        try {
-            await client.end();
-        } catch (endErr) {
-            // Ignore close errors
-        }
+        await client.end().catch(() => {});
     }
 }
 
@@ -45,14 +50,13 @@ export async function queryWithRetry(text, params, maxRetries = 3) {
             lastError = err;
 
             const isConnectionError =
-                err.message.includes('timeout') ||
-                err.message.includes('terminated') ||
-                err.message.includes('ECONNREFUSED') ||
-                err.message.includes('connect');
+                err.code === 'ECONNRESET' ||
+                err.code === 'ECONNREFUSED' ||
+                err.code === '57P01' ||
+                /terminated|timeout|connect/i.test(err.message || '');
 
             if (isConnectionError && attempt < maxRetries) {
-                const delay = attempt * 300;
-                await new Promise(r => setTimeout(r, delay));
+                await new Promise(r => setTimeout(r, attempt * 300));
             } else {
                 throw err;
             }
@@ -79,11 +83,4 @@ export async function withTransaction(callback) {
     }
 }
 
-export default {
-    query: queryWithRetry,
-    on: () => {},
-    end: async () => {},
-    totalCount: 0,
-    idleCount: 0,
-    waitingCount: 0
-};
+export default { query: queryWithRetry };

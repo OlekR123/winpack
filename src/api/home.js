@@ -1,31 +1,38 @@
+// Публичные ручки при ошибке могут вернуть не-массив ({error}); приводим к массиву,
+// чтобы один сбойный запрос не ломал рендер.
+async function getJsonArray(res) {
+    if (!res.ok) return [];
+    const data = await res.json().catch(() => []);
+    return Array.isArray(data) ? data : [];
+}
+
 export async function fetchProgramCategories() {
     const res = await fetch('/api/home/program-categories');
-    return res.json();
+    return getJsonArray(res);
 }
 
 export async function fetchProgramsByCategory(categoryId) {
     const url = new URL('/api/home/programs', window.location.origin);
     url.searchParams.set('categoryId', categoryId);
     const res = await fetch(url);
-    return res.json();
+    return getJsonArray(res);
 }
 
 export async function fetchSettingCategories() {
     const res = await fetch('/api/home/setting-categories');
-    return res.json();
+    return getJsonArray(res);
 }
 
 export async function fetchSettingsByCategory(categoryId) {
     const url = new URL('/api/home/settings', window.location.origin);
     url.searchParams.set('categoryId', categoryId);
     const res = await fetch(url);
-    return res.json();
+    return getJsonArray(res);
 }
 
 export async function fetchUserSettings(userId, headers) {
     const res = await fetch(`/api/home/user-settings/${userId}`, { headers });
-    if (!res.ok) return [];
-    return res.json();
+    return getJsonArray(res);
 }
 
 export async function saveUserSettings(userId, settingIds, headers) {
@@ -39,8 +46,7 @@ export async function saveUserSettings(userId, settingIds, headers) {
 
 export async function fetchUserPrograms(userId, headers) {
     const res = await fetch(`/api/home/user-programs/${userId}`, { headers });
-    if (!res.ok) return [];
-    return res.json();
+    return getJsonArray(res);
 }
 
 export async function saveUserPrograms(userId, programIds, headers) {

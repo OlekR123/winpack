@@ -2,6 +2,8 @@ import crypto from 'crypto';
 
 const codes = new Map();
 
+const MAX_ATTEMPTS = 5;
+
 export function saveCode(email, code, expiresInMs = 10 * 60 * 1000) {
     codes.set(email.toLowerCase(), {
         code,
@@ -19,14 +21,22 @@ export function verifyCode(email, code) {
         return false;
     }
 
+    let isMatch = false;
     try {
-        const isMatch = crypto.timingSafeEqual(
+        isMatch = crypto.timingSafeEqual(
             Buffer.from(stored.code),
             Buffer.from(code)
         );
-
-        if (!isMatch) return false;
     } catch (e) {
+        isMatch = false;
+    }
+
+    if (!isMatch) {
+        // Считаем неверные попытки и удаляем код после лимита, чтобы его нельзя было перебрать.
+        stored.attempts = (stored.attempts || 0) + 1;
+        if (stored.attempts >= MAX_ATTEMPTS) {
+            codes.delete(email.toLowerCase());
+        }
         return false;
     }
 
@@ -34,7 +44,6 @@ export function verifyCode(email, code) {
     return true;
 }
 
-// Periodic cleanup of expired codes
 setInterval(() => {
     const now = Date.now();
     for (const [email, data] of codes.entries()) {

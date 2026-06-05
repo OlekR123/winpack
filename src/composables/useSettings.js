@@ -10,9 +10,14 @@ export function useSettings() {
         try {
             settingCategories.value = await fetchSettingCategories();
 
-            for (const cat of settingCategories.value) {
-                categorySettings[cat.id] = await fetchSettingsByCategory(cat.id);
-            }
+            // Грузим настройки по всем категориям параллельно, а не водопадом.
+            const lists = await Promise.all(
+                settingCategories.value.map(cat => fetchSettingsByCategory(cat.id))
+            );
+
+            settingCategories.value.forEach((cat, i) => {
+                categorySettings[cat.id] = lists[i];
+            });
         } catch (e) {
             settingCategories.value = [];
         }
