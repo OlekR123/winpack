@@ -5,7 +5,7 @@ import { requireAuth, requireOwnership } from '../middleware/auth.js';
 
 const router = Router();
 
-// Публичная ручка — лимитируем частоту, чтобы её нельзя было использовать для нагрузки на БД.
+// Публичная ручка - лимитируем частоту, чтобы её нельзя было использовать для нагрузки на БД.
 const scriptLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 30,

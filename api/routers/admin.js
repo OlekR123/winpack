@@ -278,7 +278,7 @@ router.put('/users/:id/role', requireAuth, requireAdmin, async (req, res, next) 
         return res.status(400).json({ error: 'role должна быть admin или user' });
     }
 
-    // Свою роль менять нельзя — иначе можно случайно разжаловать себя.
+    // Свою роль менять нельзя - иначе можно случайно разжаловать себя.
     if (id === req.user.id) {
         return res.status(403).json({ error: 'Нельзя изменить собственную роль' });
     }
@@ -301,7 +301,7 @@ router.delete('/users/:id', requireAuth, requireAdmin, async (req, res, next) =>
         return res.status(400).json({ error: 'Некорректный ID пользователя' });
     }
 
-    // Себя удалить нельзя — иначе можно потерять доступ к админке.
+    // Себя удалить нельзя - иначе можно потерять доступ к админке.
     if (id === req.user.id) {
         return res.status(403).json({ error: 'Нельзя удалить собственный аккаунт' });
     }

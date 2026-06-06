@@ -16,7 +16,7 @@ export function isValidEmail(email) {
 
 export function isValidPassword(password) {
     if (!password || password.length < 8) return false;
-    // bcrypt молча обрезает пароль на 72 байтах — длиннее не принимаем.
+    // bcrypt молча обрезает пароль на 72 байтах - длиннее не принимаем.
     if (Buffer.byteLength(password, 'utf8') > 72) return false;
     return /[a-z]/.test(password) && /[A-Z]/.test(password) && /[0-9]/.test(password);
 }
