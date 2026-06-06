@@ -66,18 +66,11 @@
       </div>
     </section>
 
-    <div class="programs-action-wrapper" ref="programsBtnRef">
+    <div class="programs-action-wrapper">
       <button class="programs-generate-btn" @click="handleDownloadPrograms">Сформировать скрипт установки программ</button>
       <button class="guide-open-link" @click="openProgramsGuide">Открыть инструкцию по установке</button>
     </div>
 
-    <!-- Плавающая кнопка: снизу пока не долистали, сверху если уехала вверх -->
-    <transition name="float-btn">
-      <div v-if="hasSelectedPrograms && !isOriginalBtnVisible"
-           :class="['floating-action-btn', isScrolledPastBtn ? 'float-top' : 'float-bottom']">
-        <button class="programs-generate-btn" @click="handleDownloadPrograms">Сформировать скрипт установки программ</button>
-      </div>
-    </transition>
 
     <section class="warning-section">
       <div class="warning-middle">
@@ -223,7 +216,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { images as img, drivers } from '../assets/images.js';
 import { useAuthStore } from '../stores/auth.js';
@@ -254,11 +247,6 @@ const formLogin = ref({ email: '', password: '' });
 const formRegister = ref({ email: '', password: '', password2: '' });
 const formCode = ref({ code: '' });
 
-const programsBtnRef = ref(null);
-const isOriginalBtnVisible = ref(true);
-const isScrolledPastBtn = ref(false);
-const hasSelectedPrograms = computed(() => Object.values(selectedPrograms).some(Boolean));
-let observer = null;
 
 let resizeTimeout;
 
@@ -391,26 +379,10 @@ onMounted(() => {
   loadSettings();
   window.addEventListener('resize', debouncedResize);
 
-  setTimeout(() => {
-    if (programsBtnRef.value) {
-      observer = new IntersectionObserver(
-          ([entry]) => {
-            isOriginalBtnVisible.value = entry.isIntersecting;
-            if (!entry.isIntersecting) {
-              /* boundingClientRect.top < 0 — значит кнопка уехала вверх, пользователь ниже неё */
-              isScrolledPastBtn.value = entry.boundingClientRect.top < 0;
-            }
-          },
-          { threshold: 0.1 }
-      );
-      observer.observe(programsBtnRef.value);
-    }
-  }, 500);
 });
 
 onUnmounted(() => {
   window.removeEventListener('resize', debouncedResize);
-  if (observer) observer.disconnect();
 });
 </script>
 
@@ -598,14 +570,6 @@ onUnmounted(() => {
   margin-top: 3.125vw;
 }
 
-.floating-action-btn { position: fixed; left: 17.4479vw; right: 17.4479vw; z-index: 9998; }
-.floating-action-btn.float-bottom { bottom: 3.125vw; }
-.floating-action-btn.float-top { top: 3.125vw; }
-.floating-action-btn .programs-generate-btn { box-shadow: 0 0.1042vw 0.4167vw rgba(0,0,0,0.08); }
-.floating-action-btn .programs-generate-btn:hover { transform: translateY(-0.0625vw); box-shadow: 0 0.2083vw 0.4167vw rgba(0,0,0,0.1); }
-.float-btn-enter-active, .float-btn-leave-active { transition: transform 0.25s ease, opacity 0.25s ease; }
-.float-bottom.float-btn-enter-from, .float-bottom.float-btn-leave-to { transform: translateY(100%); opacity: 0; }
-.float-top.float-btn-enter-from, .float-top.float-btn-leave-to { transform: translateY(-100%); opacity: 0; }
 
 .auth-toast {
   position: fixed;
@@ -909,9 +873,6 @@ onUnmounted(() => {
     font-size: 20px;
     margin-top: 40px;
   }
-  .floating-action-btn { left: 60px; right: 60px; }
-  .floating-action-btn.float-bottom { bottom: 40px; }
-  .floating-action-btn.float-top { top: 40px; }
   .feedback-section { border-bottom-left-radius: 20px; border-bottom-right-radius: 20px; padding: 40px 0; }
   .feedback-container { margin: 0 60px; gap: 40px; }
   .feedback-qr {
@@ -1031,9 +992,6 @@ onUnmounted(() => {
   }
   .setting-label { font-size: 14px; }
   .config-button { padding: 10px 16px; font-size: 16px; margin-top: 24px; }
-  .floating-action-btn { left: 24px; right: 24px; }
-  .floating-action-btn.float-bottom { bottom: 24px; }
-  .floating-action-btn.float-top { top: 24px; }
   .feedback-section {
     border-radius: 0;
     padding: 32px 0;

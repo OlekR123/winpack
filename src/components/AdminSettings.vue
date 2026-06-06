@@ -27,7 +27,7 @@
           <td>{{ sett.id }}</td>
           <td class="cell-wrap">{{ getCategoryTitle(sett.category_id) }}</td>
           <td class="cell-wrap">{{ sett.label }}</td>
-          <td class="ps-command"><span class="ps-text">{{ sett.ps_command }}</span></td>
+          <td class="ps-command" :title="sett.ps_command"><span class="ps-text">{{ sett.ps_command }}</span></td>
           <td>
             <div class="actions">
               <button class="btn-edit" @click="editSetting(sett)">Изменить</button>
@@ -220,13 +220,15 @@ function openPerplexity() {
 .admin-table tbody tr:hover { background: #f9fafb; }
 .ps-command { max-width: 20.8333vw; }
 .ps-text {
-  display: block;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   font-family: 'Courier New', monospace;
   font-size: 0.8333vw;
   font-weight: 400;
   color: #6b7280;
   word-break: break-word;
-  white-space: pre-wrap;
   line-height: 1.4;
 }
 .actions { display: flex; gap: 0.5208vw; align-items: center; }
